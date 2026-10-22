@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Laudo de Mapeamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+
+/* Layout: ferramenta de duas colunas (formulário por olho | laudo ao vivo); no celular empilha, com barra de cópia fixa embaixo. OD = tom quente de fundo de olho, OE = azul. */
+:root{
+  --bg:#F2F4F5; --surface:#FFFFFF; --ink:#15202A; --muted:#5A6773; --line:#D8DEE3;
+  --od:#B0461F; --od-soft:#F6E3DA; --oe:#21608C; --oe-soft:#DCE8F1;
+  --tear:#C0262D; --fundus:#F3D9C7; --fundus-line:#D9A98B;
+  --accent:var(--od); --accent-soft:var(--od-soft);
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-label:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1317; --surface:#161E25; --ink:#E3E9ED; --muted:#93A0AB; --line:#2A3540;
+  --od:#E5835A; --od-soft:#3A241B; --oe:#74AEDB; --oe-soft:#182B3A;
+  --tear:#F0676C; --fundus:#3B2A21; --fundus-line:#7A5442; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1317; --surface:#161E25; --ink:#E3E9ED; --muted:#93A0AB; --line:#2A3540;
+  --od:#E5835A; --od-soft:#3A241B; --oe:#74AEDB; --oe-soft:#182B3A;
+  --tear:#F0676C; --fundus:#3B2A21; --fundus-line:#7A5442; color-scheme:dark }
+[data-eye="OE"]{ --accent:var(--oe); --accent-soft:var(--oe-soft) }
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 96px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+*{box-sizing:border-box}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.wrap{max-width:1180px;margin:0 auto}
+header.top{padding-block:20px 8px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:.85rem;margin:0}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.label{font-family:var(--f-label);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+/* bloco técnica */
+.tech{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field input[type=text],.field input[type=date],.field textarea,select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+.field textarea{resize:vertical;min-height:58px;width:100%}
+.check{display:flex;gap:6px;align-items:center;font-size:.9rem;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+
+/* seletor de olho */
+.eyebar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);margin-bottom:14px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:8px 16px;font-family:var(--f-label);font-weight:600;font-size:.95rem;letter-spacing:.04em;cursor:pointer;display:flex;gap:8px;align-items:center}
+.seg button[aria-pressed="true"][data-e="OD"]{background:var(--od);color:#fff}
+.seg button[aria-pressed="true"][data-e="OE"]{background:var(--oe);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0E1317}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0E1317}}
+.count{font-family:var(--f-mono);font-size:.75rem;font-weight:500;min-width:20px;padding:0 5px;border-radius:9px;border:1px solid currentColor;opacity:.85;font-variant-numeric:tabular-nums}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:7px 11px;font-size:.85rem;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.warn{color:var(--tear);border-color:var(--tear)}
+
+/* seções */
+.sections{display:flex;flex-direction:column;gap:12px}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.sec-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec-h h2{font-family:var(--f-label);font-weight:600;font-size:1rem;margin:0;letter-spacing:.02em}
+.pill{font-family:var(--f-label);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;color:var(--muted);border:1px solid var(--line)}
+.pill.abn{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:18px;background:var(--bg);max-width:100%}
+.chip button{border:0;background:none;padding:5px 11px;font-size:.85rem;cursor:pointer;text-align:left}
+.chip.on{border-color:var(--accent);background:var(--accent-soft)}
+.chip.on button{color:var(--accent);font-weight:500}
+.chip select{border:0;border-left:1px solid var(--accent);border-radius:0 18px 18px 0;background:transparent;padding:5px 8px;font-size:.82rem;color:var(--accent);max-width:200px}
+.inline{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.88rem}
+.inline select{padding:4px 7px}
+.outro{width:100%;background:var(--bg);border:1px dashed var(--line);border-radius:6px;padding:7px 9px;font-size:.88rem}
+.outro:focus{border-style:solid}
+
+/* periferia */
+.peri{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:520px){.peri{grid-template-columns:minmax(0,1fr)}.dial{max-width:200px;margin:0 auto}}
+.dial svg{width:100%;height:auto;display:block}
+.les-list{display:flex;flex-direction:column;gap:8px}
+.les{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:.85rem}
+.les select{padding:4px 6px;font-size:.85rem;background:var(--surface)}
+.les .x{margin-left:auto;border:0;background:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 6px}
+.les .x:hover{color:var(--tear)}
+.empty{color:var(--muted);font-size:.85rem;margin:0}
+
+/* laudo */
+.preview{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:calc(100vh - 24px)}
+@media (max-width:900px){.preview{position:static;max-height:none}}
+.prev-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);gap:8px}
+.copy{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 14px;font-weight:600;cursor:pointer}
+:root[data-theme="dark"] .copy{color:#0E1317}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .copy{color:#0E1317}}
+pre#out{margin:0;padding:14px;font-family:var(--f-mono);font-size:.8rem;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;overflow:auto;flex:1;min-width:0}
+.foot{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+
+.mbar{display:none}
+@media (max-width:900px){.mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:6;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}}
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:.88rem;z-index:20}
+@media (prefers-reduced-motion:no-preference){.chip,.btn{transition:border-color .15s,background .15s}}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app" data-eye="OD">
+  <div id="nojs" style="margin:16px 0;padding:14px 16px;border:2px solid #B0461F;border-radius:10px;background:#F6E3DA;color:#15202A;font-size:16px;line-height:1.45"><strong>Este arquivo está aberto em um visualizador que não executa o gerador.</strong><br>Abra no navegador: no Android, toque em ⋮ → Abrir com → Chrome. No iPhone, toque em Compartilhar → Salvar em Arquivos, depois abra pelo app Arquivos e escolha Safari, ou use o Chrome.</div>
+  <header class="top">
+    <h1>Laudo de Mapeamento de Retina</h1>
+    <p class="sub">Achados marcados por estrutura geram o texto do laudo. Sem seleção, a estrutura sai como normal.</p>
+  </header>
+
+  <div class="grid">
+    <main>
+      <section class="tech" aria-label="Técnica do exame">
+        <div class="row">
+          <div class="field"><label class="label" for="dt">Data</label><input type="date" id="dt"></div>
+          <div class="field"><label class="label" for="lente">Lente OBI</label>
+            <select id="lente"><option>20D</option><option>28D</option><option>30D</option></select></div>
+          <label class="check"><input type="checkbox" id="midr">Midríase medicamentosa</label>
+          <label class="check"><input type="checkbox" id="depr">Depressão escleral</label>
+          <label class="check"><input type="checkbox" id="bio">Biomicroscopia de fundo</label>
+        </div>
+        <div class="field"><label class="label" for="ind">Indicação clínica (opcional)</label><input type="text" id="ind" placeholder="Ex.: fotopsias e moscas volantes há 3 dias"></div>
+      </section>
+
+      <div class="eyebar">
+        <div class="seg" role="group" aria-label="Olho">
+          <button data-e="OD" aria-pressed="true">OD <span class="count" id="cOD">0</span></button>
+          <button data-e="OE" aria-pressed="false">OE <span class="count" id="cOE">0</span></button>
+        </div>
+        <div class="actions">
+          <button class="btn" id="copyEye">Copiar para OE</button>
+          <button class="btn" id="normEye">Olho normal</button>
+          <button class="btn" id="resetAll">Novo laudo</button>
+        </div>
+      </div>
+
+      <div class="sections" id="sections"></div>
+    </main>
+
+    <aside class="preview" aria-label="Laudo gerado">
+      <div class="prev-h"><span class="label">Laudo</span><button class="copy" id="copyTop">Copiar laudo</button></div>
+      <pre id="out" tabindex="0"></pre>
+      <div class="foot">
+        <div class="field"><label class="label" for="conduta">Conduta / observações</label><textarea id="conduta" placeholder="Ex.: Fotocoagulação a laser de barreira em OD. Retorno em 30 dias."></textarea></div>
+        <div class="field"><label class="label" for="ass">Assinatura (fica salva neste navegador)</label><input type="text" id="ass" placeholder="Dr. Nome Sobrenome · CRM-BA 00000"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="mbar"><span class="label" id="mstat">OD · OE</span><button class="copy" id="copyBot">Copiar laudo</button></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+document.getElementById("nojs").remove();
+const SECTIONS = [
+ {id:'meios', name:'Meios e vítreo', normal:'transparentes, vítreo sem alterações', f:[
+  {id:'sin', l:'Sinérese', t:'sinérese vítrea'},
+  {id:'dvp', l:'DVP', t:'descolamento do vítreo posterior {g}', g:['completo, com anel de Weiss','parcial']},
+  {id:'shafer', l:'Sinal de Shafer', t:'pigmento no vítreo anterior (sinal de Shafer)'},
+  {id:'hv', l:'Hemorragia vítrea', t:'hemorragia vítrea {g}', g:['leve','moderada','densa, sem visualização do fundo']},
+  {id:'haze', l:'Haze vítreo', t:'haze vítreo {g} (escala NEI/SUN)', g:['0,5+','1+','2+','3+','4+']},
+  {id:'ast', l:'Hialose asteroide', t:'hialose asteroide'},
+  {id:'sil', l:'Óleo de silicone', t:'óleo de silicone na cavidade vítrea'},
+  {id:'gas', l:'Gás', t:'gás na cavidade vítrea, {g}', g:['preenchimento de ~25%','preenchimento de ~50%','preenchimento de ~75%','preenchimento total']},
+  {id:'opac', l:'Opacidade de meios', t:'opacidade de meios dificultando a avaliação ({g})', g:['catarata','opacidade de cápsula posterior','leucoma corneano']}
+ ]},
+ {id:'disco', name:'Disco óptico', normal:'corado, de bordos nítidos', f:[
+  {id:'palt', l:'Palidez temporal', t:'palidez temporal'},
+  {id:'pald', l:'Palidez difusa', t:'palidez difusa'},
+  {id:'edema', l:'Edema de disco', t:'edema de disco, bordos borrados'},
+  {id:'hemp', l:'Hemorragia peripapilar', t:'hemorragia peripapilar em chama de vela'},
+  {id:'notch', l:'Afinamento focal da rima', t:'afinamento focal da rima neural ({g})', g:['polo superior','polo inferior']},
+  {id:'nvd', l:'NVD', t:'neovasos de disco (NVD)'},
+  {id:'atrof', l:'Atrofia peripapilar', t:'atrofia peripapilar'},
+  {id:'fos', l:'Fosseta', t:'fosseta de disco óptico'},
+  {id:'drusd', l:'Drusas de disco', t:'drusas de disco óptico'},
+  {id:'obliq', l:'Disco oblíquo / tilted', t:'disco de inserção oblíqua (tilted)'}
+ ]},
+ {id:'macula', name:'Mácula', normal:'brilho foveal presente, sem alterações', f:[
+  {id:'bf', l:'Brilho foveal ausente', t:'brilho foveal ausente'},
+  {id:'mer', l:'MER', t:'membrana epirretiniana'},
+  {id:'bm', l:'Buraco macular', t:'buraco macular {g}', g:['de espessura total','lamelar']},
+  {id:'em', l:'Edema macular', t:'espessamento macular sugestivo de edema'},
+  {id:'exm', l:'Exsudatos duros', t:'exsudatos duros maculares'},
+  {id:'estrela', l:'Estrela macular', t:'exsudatos em estrela macular'},
+  {id:'drusas', l:'Drusas', t:'drusas {g}', g:['pequenas','médias','grandes','reticulares (pseudodrusas)']},
+  {id:'epr', l:'Alteração do EPR', t:'alterações pigmentares do EPR'},
+  {id:'ag', l:'Atrofia geográfica', t:'atrofia geográfica'},
+  {id:'dep', l:'DEP', t:'descolamento do epitélio pigmentado'},
+  {id:'fsr', l:'Fluido sub-retiniano', t:'fluido sub-retiniano'},
+  {id:'hsr', l:'Hemorragia sub-retiniana', t:'hemorragia sub-retiniana'},
+  {id:'disc', l:'Cicatriz disciforme', t:'cicatriz disciforme'},
+  {id:'mvc', l:'Mancha vermelho-cereja', t:'mancha vermelho-cereja'}
+ ]},
+ {id:'vasos', name:'Vasos', normal:'calibre e trajeto preservados', f:[
+  {id:'estr', l:'Estreitamento arteriolar', t:'estreitamento arteriolar difuso'},
+  {id:'cruz', l:'Cruzamentos AV patológicos', t:'cruzamentos arteriovenosos patológicos'},
+  {id:'tort', l:'Tortuosidade venosa', t:'tortuosidade venosa'},
+  {id:'ensal', l:'Ensalsichamento venoso', t:'ensalsichamento venoso'},
+  {id:'irma', l:'IRMA', t:'anormalidades microvasculares intrarretinianas (IRMA)'},
+  {id:'nve', l:'NVE', t:'neovasos de retina (NVE)'},
+  {id:'emb', l:'Embainhamento', t:'embainhamento vascular'},
+  {id:'ov', l:'Oclusão venosa', t:'oclusão venosa {g}', g:['central','de ramo temporal superior','de ramo temporal inferior','hemicentral superior','hemicentral inferior']},
+  {id:'oa', l:'Oclusão arterial', t:'oclusão arterial {g}', g:['central','de ramo temporal superior','de ramo temporal inferior','ciliorretiniana']},
+  {id:'maa', l:'Macroaneurisma', t:'macroaneurisma arterial'},
+  {id:'holl', l:'Placa de Hollenhorst', t:'êmbolo arteriolar (placa de Hollenhorst)'}
+ ]},
+ {id:'retina', name:'Retina (polo e média periferia)', normal:'aplicada em 360°', f:[
+  {id:'ma', l:'Microaneurismas', t:'microaneurismas'},
+  {id:'hpm', l:'Hemorragias ponto e mancha', t:'hemorragias intrarretinianas em ponto e mancha'},
+  {id:'hcv', l:'Hemorragias em chama', t:'hemorragias em chama de vela'},
+  {id:'alg', l:'Exsudatos algodonosos', t:'exsudatos algodonosos'},
+  {id:'pfc', l:'Fotocoagulação prévia', t:'cicatrizes de fotocoagulação {g}', g:['panretiniana','setorial','focal/grid macular']},
+  {id:'nevo', l:'Nevo de coroide', t:'nevo de coroide plano'},
+  {id:'chrpe', l:'HCEPR', t:'hipertrofia congênita do EPR'},
+  {id:'cic', l:'Cicatriz coriorretiniana', t:'cicatriz coriorretiniana'},
+  {id:'dr', l:'Descolamento de retina', t:'descolamento de retina {g}', g:['regmatogênico','tracional','exsudativo','misto (tracional-regmatogênico)']},
+  {id:'mst', l:'Status macular', t:'{g}', g:['mácula aplicada (macula-on)','mácula descolada (macula-off)']},
+  {id:'pvr', l:'PVR', t:'vitreorretinopatia proliferativa grau {g}', g:['A','B','C-P','C-A']},
+  {id:'dc', l:'Descolamento de coroide', t:'descolamento de coroide'}
+ ]}
+];
+const LES = [
+ ['lattice','degeneração lattice'],['lattice_b','degeneração lattice com buracos atróficos'],['buraco','buraco atrófico'],
+ ['ferr','rotura em ferradura'],['operc','buraco operculado'],['gig','rotura gigante'],['dial','diálise retiniana'],
+ ['tufo','tufo retiniano'],['squise','retinosquise'],['bsp','branco sem pressão'],['pav','degeneração pavimentosa'],
+ ['cist','degeneração cistoide periférica'],['pig','hiperpigmentação periférica'],['cic','cicatriz coriorretiniana']
+];
+const TEARS = new Set(['buraco','ferr','operc','gig','dial','lattice_b']);
+const TRAT = [['','sem tratamento descrito'],['bar','com barreira de laser'],['ind','barreira de laser indicada'],['cri','com crioterapia prévia']];
+const CLS = {
+ icdr:{l:'Retinopatia diabética (ICDR)', o:['Sem retinopatia aparente','RD não proliferativa leve','RD não proliferativa moderada','RD não proliferativa grave','RD proliferativa']},
+ dme:{l:'Edema macular diabético (ICDR)', o:['Ausente','Presente, sem envolvimento central','Presente, com envolvimento central']},
+ mw:{l:'Retinopatia hipertensiva (Mitchell-Wong)', o:['Ausente','Leve','Moderada','Maligna']}
+};
+const CD = ['0,1','0,2','0,3','0,4','0,5','0,6','0,7','0,8','0,9','não avaliável'];
+const AV = ['2:3','1:2','1:3','1:4','não avaliável'];
+
+const KEY='mapeamento-retina-v1', KEYS='mapeamento-retina-ass';
+function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});o.peri='';return {sel:s,outro:o,cd:'0,3',av:'2:3',les:[],cls:{icdr:'',dme:'',mw:''}};}
+function today(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);}
+function blank(){return {date:today(),lente:'20D',midr:true,depr:true,bio:false,ind:'',conduta:'',eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
+let S=blank();
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes&&p.eyes.OD)S=Object.assign(blank(),p);}}catch(e){}
+let ASS='';try{ASS=localStorage.getItem(KEYS)||'';}catch(e){}
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}},300);}
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const other=e=>e==='OD'?'OE':'OD';
+
+function phrase(f,v){const g=v===true?(f.g?f.g[0]:''):v;return f.t.includes('{g}')?f.t.replace('{g}',g):f.t;}
+function items(eye,sec){const sel=eye.sel[sec.id];const out=sec.f.filter(f=>sel[f.id]!==undefined).map(f=>phrase(f,sel[f.id]));const o=eye.outro[sec.id].trim();if(o)out.push(o);return out;}
+function hr(h,start){h=+h;if(start)return h===1?'da 1h':'das '+h+'h';return h===1?'à 1h':'às '+h+'h';}
+function lesLoc(l){if(+l.de===0)return 'em 360°';if(l.de===l.ate)return (+l.de===1?'à 1h':'às '+l.de+'h');return hr(l.de,true)+' '+hr(l.ate,false);}
+function lesText(l){const n=(LES.find(x=>x[0]===l.tipo)||LES[0])[1];const t=TRAT.find(x=>x[0]===l.trat);return n+' '+lesLoc(l)+(l.trat?', '+t[1]:'');}
+function secText(eye,sec){
+  const it=items(eye,sec);
+  if(sec.id==='disco')return (it.length?it.join('; '):sec.normal)+', escavação '+eye.cd;
+  if(sec.id==='vasos')return (it.length?it.join('; '):sec.normal)+(eye.av?', relação AV '+eye.av:'');
+  if(sec.id==='retina'){if(!it.length)return sec.normal;return eye.sel.retina.dr!==undefined?it.join('; '):sec.normal+'; '+it.join('; ');}
+  return it.length?it.join('; '):sec.normal;
+}
+function periText(eye){const a=eye.les.map(lesText);const o=eye.outro.peri.trim();if(o)a.push(o);return a.length?a.join('; '):'sem roturas ou degenerações predisponentes ao descolamento de retina';}
+function abnormal(eye){
+  const a=[];SECTIONS.forEach(s=>a.push(...items(eye,s)));
+  a.push(...eye.les.map(lesText));if(eye.outro.peri.trim())a.push(eye.outro.peri.trim());
+  Object.keys(CLS).forEach(k=>{const v=eye.cls[k];if(v&&!/^(Ausente|Sem retinopatia)/.test(v))a.push(CLS[k].l.replace(/ \(.*\)/,'')+': '+v.toLowerCase());});
+  return a;
+}
+function fmtDate(d){if(!d)return '';const [y,m,dd]=d.split('-');return dd+'/'+m+'/'+y;}
+function report(){
+  let tec='Oftalmoscopia binocular indireta'+(S.midr?' sob midríase medicamentosa':'')+', com lente de '+S.lente+(S.depr?' e depressão escleral':'');
+  if(S.bio)tec+='; biomicroscopia de fundo';
+  const L=['MAPEAMENTO DE RETINA','','Data: '+fmtDate(S.date),'Técnica: '+tec+'.'];
+  if(S.ind.trim())L.push('Indicação: '+S.ind.trim().replace(/\.$/,'')+'.');
+  ['OD','OE'].forEach(e=>{
+    const eye=S.eyes[e];L.push('',e==='OD'?'OLHO DIREITO (OD)':'OLHO ESQUERDO (OE)');
+    SECTIONS.forEach(s=>L.push('- '+s.name+': '+secText(eye,s)+'.'));
+    L.push('- Periferia: '+periText(eye)+'.');
+    Object.keys(CLS).forEach(k=>{if(eye.cls[k])L.push('- '+CLS[k].l+': '+eye.cls[k].toLowerCase()+'.');});
+  });
+  L.push('','IMPRESSÃO DIAGNÓSTICA');
+  ['OD','OE'].forEach(e=>{const a=abnormal(S.eyes[e]);L.push(e+': '+(a.length?cap(a.join('; ')):'Exame dentro dos limites da normalidade')+'.');});
+  if(S.conduta.trim())L.push('','CONDUTA','- '+S.conduta.trim().split(/\n+/).join('\n- '));
+  if(ASS.trim())L.push('','','_______________________________',ASS.trim());
+  return L.join('\n');
+}
+
+/* ---------- render ---------- */
+function opts(list,val){return list.map(o=>{const v=Array.isArray(o)?o[0]:o,t=Array.isArray(o)?o[1]:o;return `<option value="${esc(v)}"${v===val?' selected':''}>${esc(t)}</option>`;}).join('');}
+function secCard(sec){
+  const eye=S.eyes[S.eye],sel=eye.sel[sec.id];const n=items(eye,sec).length;
+  let extra='';
+  if(sec.id==='disco')extra=`<div class="inline"><label for="cd">Escavação (C/D)</label><select id="cd" data-x="cd">${opts(CD,eye.cd)}</select></div>`;
+  if(sec.id==='vasos')extra=`<div class="inline"><label for="av">Relação AV</label><select id="av" data-x="av"><option value="">não descrever</option>${opts(AV,eye.av)}</select></div>`;
+  const chips=sec.f.map(f=>{const on=sel[f.id]!==undefined;const v=sel[f.id]===true?(f.g?f.g[0]:''):sel[f.id];
+    return `<span class="chip${on?' on':''}"><button type="button" data-s="${sec.id}" data-f="${f.id}" aria-pressed="${on}">${esc(f.l)}</button>${on&&f.g?`<select aria-label="${esc(f.l)}: grau" data-s="${sec.id}" data-g="${f.id}">${opts(f.g,v)}</select>`:''}</span>`;}).join('');
+  return `<section class="sec" id="sec-${sec.id}"><div class="sec-h"><h2>${esc(sec.name)}</h2><span class="pill${n?' abn':''}">${n?n+(n>1?' achados':' achado'):'normal'}</span></div>
+  ${extra}<div class="chips">${chips}</div>
+  <input class="outro" id="o-${sec.id}" data-o="${sec.id}" type="text" placeholder="Outro achado (texto livre)" value="${esc(eye.outro[sec.id])}"></section>`;
+}
+function periCard(){
+  const eye=S.eyes[S.eye];const n=eye.les.length+(eye.outro.peri.trim()?1:0);
+  const hours=[['0','360°']].concat(Array.from({length:12},(_,i)=>[String(i+1),(i+1)+'h']));
+  const hours2=Array.from({length:12},(_,i)=>[String(i+1),(i+1)+'h']);
+  const list=eye.les.length?eye.les.map((l,i)=>`<div class="les">
+    <select aria-label="Tipo de lesão" data-l="${i}" data-k="tipo">${opts(LES,l.tipo)}</select>
+    <span>de</span><select aria-label="Hora inicial" data-l="${i}" data-k="de">${opts(hours,l.de)}</select>
+    <span${+l.de===0?' hidden':''}>a</span><select aria-label="Hora final" data-l="${i}" data-k="ate"${+l.de===0?' hidden':''}>${opts(hours2,l.ate)}</select>
+    <select aria-label="Tratamento" data-l="${i}" data-k="trat">${opts(TRAT,l.trat)}</select>
+    <button class="x" data-rm="${i}" aria-label="Remover lesão">×</button></div>`).join(''):'<p class="empty">Nenhuma lesão periférica. Sem lesões, o laudo descreve periferia sem roturas ou degenerações predisponentes.</p>';
+  const cls=Object.keys(CLS).map(k=>`<div class="field"><label class="label" for="cl-${k}">${esc(CLS[k].l)}</label><select id="cl-${k}" data-c="${k}"><option value="">não descrever</option>${opts(CLS[k].o,eye.cls[k])}</select></div>`).join('');
+  return `<section class="sec" id="sec-peri"><div class="sec-h"><h2>Periferia</h2><span class="pill${n?' abn':''}">${n?n+(n>1?' achados':' achado'):'normal'}</span></div>
+   <div class="peri"><div class="dial" id="dial">${dial(eye)}</div>
+   <div class="les-list"><div id="leslist" class="les-list">${list}</div>
+   <div><button class="btn" id="addLes">+ Adicionar lesão periférica</button></div>
+   <input class="outro" id="o-peri" data-o="peri" type="text" placeholder="Outro achado periférico (texto livre)" value="${esc(eye.outro.peri)}"></div></div></section>
+   <section class="sec"><div class="sec-h"><h2>Classificações</h2><span class="pill">opcional</span></div><div class="row">${cls}</div></section>`;
+}
+function pt(r,deg){const a=(deg-90)*Math.PI/180;return [ (r*Math.cos(a)).toFixed(1),(r*Math.sin(a)).toFixed(1)];}
+function arc(r,a1,a2){const [x1,y1]=pt(r,a1),[x2,y2]=pt(r,a2);const large=(a2-a1)>180?1:0;return `M${x1} ${y1} A${r} ${r} 0 ${large} 1 ${x2} ${y2}`;}
+function dial(eye){
+  const od=S.eye==='OD';let s=`<svg viewBox="-118 -118 236 236" role="img" aria-label="Esquema periférico ${S.eye} em horas de relógio">
+   <circle r="96" fill="var(--fundus)" stroke="var(--fundus-line)" stroke-width="1.5"/>
+   <circle r="62" fill="none" stroke="var(--fundus-line)" stroke-dasharray="3 4"/>
+   <circle cx="${od?24:-24}" cy="0" r="9" fill="var(--surface)" stroke="var(--fundus-line)"/>
+   <circle r="4" fill="var(--fundus-line)"/>`;
+  for(let h=1;h<=12;h++){const [x,y]=pt(108,h*30);s+=`<text x="${x}" y="${y}" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--muted)" text-anchor="middle" dominant-baseline="central">${h}</text>`;}
+  s+=`<text x="-72" y="0" font-size="11" font-weight="600" fill="var(--muted)" text-anchor="middle" dominant-baseline="central" font-family="IBM Plex Sans Condensed, sans-serif">${od?'T':'N'}</text>
+      <text x="72" y="0" font-size="11" font-weight="600" fill="var(--muted)" text-anchor="middle" dominant-baseline="central" font-family="IBM Plex Sans Condensed, sans-serif">${od?'N':'T'}</text>`;
+  eye.les.forEach((l,i)=>{
+    const r=88-(i%3)*9;const col=TEARS.has(l.tipo)?'var(--tear)':'var(--accent)';
+    let p;
+    if(+l.de===0){p=`<circle r="${r}" fill="none" stroke="${col}" stroke-width="6" opacity=".85"/>`;
+      if(l.trat==='bar')p+=`<circle r="${r+6}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="1 4" stroke-linecap="round"/>`;}
+    else{let a1=+l.de*30,a2=+l.ate*30;if(a2<=a1)a2+=360;if(l.de===l.ate){a1-=10;a2=a1+20;}
+      p=`<path d="${arc(r,a1,a2)}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" opacity=".9"/>`;
+      if(l.trat==='bar')p+=`<path d="${arc(r+6,a1-6,a2+6)}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="1 4" stroke-linecap="round"/>`;}
+    s+=p;});
+  return s+'</svg>';
+}
+function renderSections(){
+  $('sections').innerHTML=SECTIONS.map(secCard).join('')+periCard();
+}
+function refreshCard(id){const sec=SECTIONS.find(x=>x.id===id);const el=$('sec-'+id);const t=document.createElement('div');t.innerHTML=secCard(sec);el.replaceWith(t.firstElementChild);}
+function refreshPeri(){const eye=S.eyes[S.eye];$('dial').innerHTML=dial(eye);const n=eye.les.length+(eye.outro.peri.trim()?1:0);const p=document.querySelector('#sec-peri .pill');p.className='pill'+(n?' abn':'');p.textContent=n?n+(n>1?' achados':' achado'):'normal';}
+function refreshPill(id){const n=items(S.eyes[S.eye],SECTIONS.find(x=>x.id===id)).length;const p=document.querySelector('#sec-'+id+' .pill');p.className='pill'+(n?' abn':'');p.textContent=n?n+(n>1?' achados':' achado'):'normal';}
+function update(){
+  $('out').textContent=report();
+  ['OD','OE'].forEach(e=>{$('c'+e).textContent=abnormal(S.eyes[e]).length;});
+  $('mstat').textContent='OD '+abnormal(S.eyes.OD).length+' · OE '+abnormal(S.eyes.OE).length+' achados';
+  save();
+}
+function setEye(e){S.eye=e;$('app').dataset.eye=e;document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.e===e));
+  $('copyEye').textContent='Copiar para '+other(e);document.querySelector('.mbar').dataset.eye=e;renderSections();update();}
+
+/* ---------- eventos ---------- */
+const secs=$('sections');
+secs.addEventListener('click',ev=>{
+  const b=ev.target.closest('button');if(!b)return;const eye=S.eyes[S.eye];
+  if(b.dataset.f){const sel=eye.sel[b.dataset.s];if(sel[b.dataset.f]!==undefined)delete sel[b.dataset.f];else sel[b.dataset.f]=true;refreshCard(b.dataset.s);update();
+    const nb=document.querySelector(`#sec-${b.dataset.s} button[data-f="${b.dataset.f}"]`);if(nb)nb.focus();return;}
+  if(b.id==='addLes'){const last=eye.les[eye.les.length-1];eye.les.push({tipo:'lattice',de:last?last.de:'12',ate:last?last.ate:'12',trat:''});renderSections();update();return;}
+  if(b.dataset.rm!==undefined){eye.les.splice(+b.dataset.rm,1);renderSections();update();}
+});
+secs.addEventListener('change',ev=>{
+  const t=ev.target,eye=S.eyes[S.eye];
+  if(t.dataset.g){eye.sel[t.dataset.s][t.dataset.g]=t.value;update();}
+  else if(t.dataset.x){eye[t.dataset.x]=t.value;update();}
+  else if(t.dataset.c){eye.cls[t.dataset.c]=t.value;update();}
+  else if(t.dataset.l!==undefined){const l=eye.les[+t.dataset.l];l[t.dataset.k]=t.value;
+    if(t.dataset.k==='de'){if(+t.value!==0&&(+l.ate===0||!l.ate))l.ate=t.value;const row=t.closest('.les');row.querySelectorAll('[data-k="ate"]').forEach(x=>x.hidden=+t.value===0);row.querySelector('span:nth-of-type(2)').hidden=+t.value===0;}
+    refreshPeri();update();}
+});
+secs.addEventListener('input',ev=>{const t=ev.target;if(t.dataset.o!==undefined){S.eyes[S.eye].outro[t.dataset.o]=t.value;if(t.dataset.o==='peri')refreshPeri();else refreshPill(t.dataset.o);update();}});
+
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>setEye(b.dataset.e)));
+$('copyEye').addEventListener('click',()=>{const o=other(S.eye);S.eyes[o]=JSON.parse(JSON.stringify(S.eyes[S.eye]));update();toast('Achados de '+S.eye+' copiados para '+o);});
+$('normEye').addEventListener('click',()=>{S.eyes[S.eye]=blankEye();renderSections();update();toast(S.eye+' marcado como normal');});
+let armed=null;
+$('resetAll').addEventListener('click',ev=>{const b=ev.currentTarget;
+  if(!armed){b.textContent='Confirmar novo laudo';b.classList.add('warn');armed=setTimeout(()=>{armed=null;b.textContent='Novo laudo';b.classList.remove('warn');},3500);return;}
+  clearTimeout(armed);armed=null;b.textContent='Novo laudo';b.classList.remove('warn');
+  S=blank();bindTech();setEye('OD');toast('Novo laudo iniciado, ambos os olhos normais');});
+
+function bindTech(){$('dt').value=S.date;$('lente').value=S.lente;$('midr').checked=S.midr;$('depr').checked=S.depr;$('bio').checked=S.bio;$('ind').value=S.ind;$('conduta').value=S.conduta;$('ass').value=ASS;}
+[['dt','date','value'],['lente','lente','value'],['midr','midr','checked'],['depr','depr','checked'],['bio','bio','checked'],['ind','ind','value'],['conduta','conduta','value']]
+ .forEach(([id,k,p])=>{const el=$(id);el.addEventListener(el.type==='checkbox'||el.tagName==='SELECT'?'change':'input',()=>{S[k]=el[p];update();});});
+$('ass').addEventListener('input',e=>{ASS=e.target.value;try{localStorage.setItem(KEYS,ASS);}catch(x){}update();});
+
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,1800);}
+function copy(){const txt=report();
+  const sel=()=>{const r=document.createRange();r.selectNodeContents($('out'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Texto selecionado, use Copiar do sistema');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(()=>toast('Laudo copiado'),sel);}else sel();}
+$('copyTop').addEventListener('click',copy);$('copyBot').addEventListener('click',copy);
+
+bindTech();setEye(S.eye||'OD');
+</script>
+
+</body>
+</html>
