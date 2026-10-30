@@ -174,14 +174,14 @@ document.getElementById("nojs").remove();
 const SECTIONS = [
  {id:'meios', name:'Meios e vítreo', normal:'transparentes, vítreo sem alterações', f:[
   {id:'sin', l:'Sinérese', t:'sinérese vítrea'},
-  {id:'dvp', l:'DVP', t:'descolamento do vítreo posterior {g}', g:['completo, com anel de Weiss','parcial']},
+  {id:'dvp', l:'Anel de Weiss', t:'anel de Weiss'},
   {id:'shafer', l:'Sinal de Shafer', t:'pigmento no vítreo anterior (sinal de Shafer)'},
   {id:'hv', l:'Hemorragia vítrea', t:'hemorragia vítrea {g}', g:['leve','moderada','densa, sem visualização do fundo']},
-  {id:'haze', l:'Haze vítreo', t:'haze vítreo {g} (escala NEI/SUN)', g:['0,5+','1+','2+','3+','4+']},
+  {id:'haze', l:'Haze vítreo', t:'haze vítreo'},
   {id:'ast', l:'Hialose asteroide', t:'hialose asteroide'},
   {id:'sil', l:'Óleo de silicone', t:'óleo de silicone na cavidade vítrea'},
-  {id:'gas', l:'Gás', t:'gás na cavidade vítrea, {g}', g:['preenchimento de ~25%','preenchimento de ~50%','preenchimento de ~75%','preenchimento total']},
-  {id:'opac', l:'Opacidade de meios', t:'opacidade de meios dificultando a avaliação ({g})', g:['catarata','opacidade de cápsula posterior','leucoma corneano']}
+  {id:'gas', l:'Gás', t:'gás na cavidade vítrea'},
+  {id:'opac', l:'Opacidade de meios', t:'opacidade de meios {g}', g:['leve','moderada','impraticável'], gt:{'impraticável':'opacidade de meios que torna o exame impraticável'}}
  ]},
  {id:'disco', name:'Disco óptico', normal:'corado, de bordos nítidos', f:[
   {id:'palt', l:'Palidez temporal', t:'palidez temporal'},
@@ -260,7 +260,17 @@ function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';}
 function today(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);}
 function blank(){return {date:today(),lente:'20D',midr:true,depr:true,bio:false,ind:'',conduta:'',eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
 let S=blank();
-try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes&&p.eyes.OD)S=Object.assign(blank(),p);}}catch(e){}
+/* Normaliza laudos salvos por versões anteriores: descarta achados extintos e opções que não existem mais */
+function fixEye(eye){const b=blankEye();if(!eye||typeof eye!=='object')return b;
+  SECTIONS.forEach(sec=>{const src=(eye.sel&&eye.sel[sec.id])||{};
+    sec.f.forEach(f=>{const v=src[f.id];if(v===undefined)return;b.sel[sec.id][f.id]=f.g?(f.g.includes(v)?v:true):true;});
+    if(eye.outro&&typeof eye.outro[sec.id]==='string')b.outro[sec.id]=eye.outro[sec.id];});
+  if(eye.outro&&typeof eye.outro.peri==='string')b.outro.peri=eye.outro.peri;
+  if(CD.includes(eye.cd))b.cd=eye.cd;if(eye.av===''||AV.includes(eye.av))b.av=eye.av;
+  if(Array.isArray(eye.les))b.les=eye.les.filter(l=>l&&LES.some(x=>x[0]===l.tipo));
+  if(eye.cls)Object.keys(CLS).forEach(k=>{if(eye.cls[k]===''||CLS[k].o.includes(eye.cls[k]))b.cls[k]=eye.cls[k];});
+  return b;}
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes&&p.eyes.OD){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';}}}catch(e){S=blank();}
 let ASS='';try{ASS=localStorage.getItem(KEYS)||'';}catch(e){}
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}},300);}
 
@@ -269,7 +279,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
 const other=e=>e==='OD'?'OE':'OD';
 
-function phrase(f,v){const g=v===true?(f.g?f.g[0]:''):v;return f.t.includes('{g}')?f.t.replace('{g}',g):f.t;}
+function phrase(f,v){const g=v===true?(f.g?f.g[0]:''):v;if(f.gt&&f.gt[g])return f.gt[g];return f.t.includes('{g}')?f.t.replace('{g}',g):f.t;}
 function items(eye,sec){const sel=eye.sel[sec.id];const out=sec.f.filter(f=>sel[f.id]!==undefined).map(f=>phrase(f,sel[f.id]));const o=eye.outro[sec.id].trim();if(o)out.push(o);return out;}
 function hr(h,start){h=+h;if(start)return h===1?'da 1h':'das '+h+'h';return h===1?'à 1h':'às '+h+'h';}
 function lesLoc(l){if(+l.de===0)return 'em 360°';if(l.de===l.ate)return (+l.de===1?'à 1h':'às '+l.de+'h');return hr(l.de,true)+' '+hr(l.ate,false);}
