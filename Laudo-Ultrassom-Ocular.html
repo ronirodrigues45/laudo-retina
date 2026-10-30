@@ -238,9 +238,9 @@ const SECTIONS = [
  {id:'vit', name:'Cavidade vítrea', normal:['vítreo sem alterações ecográficas',''], f:[
   {id:'dvpp', l:'DVP parcial', t:'eco membranáceo móvel, de baixa refletividade, aderido à parede posterior, sugestivo de descolamento do vítreo posterior parcial', c:'imagens sugestivas de descolamento do vítreo posterior parcial'},
   {id:'dvpt', l:'DVP total', t:'eco membranáceo móvel, de baixa refletividade, sem aderência à parede posterior, sugestivo de descolamento do vítreo posterior total', c:'imagens sugestivas de descolamento do vítreo posterior total'},
-  {id:'punc', l:'Ecos puntiformes', g:['hemorragia vítrea','processo inflamatório intraocular','hemorragia vítrea ou processo inflamatório intraocular'], t:'ecos puntiformes móveis, de baixa refletividade, dispersos na cavidade vítrea, sugestivos de {g}', c:'imagens sugestivas de {g}'},
+  {id:'punc', l:'Hemorragia/Inflamação', sc:true, sub:[['disp','dispersa na cavidade vítrea','ecos puntiformes móveis, de baixa refletividade, dispersos na cavidade vítrea, sugestivos de hemorragia vítrea ou processo inflamatório intraocular','imagens sugestivas de hemorragia vítrea ou processo inflamatório intraocular'],['subh','sub-hialoidea','ecos puntiformes de baixa refletividade no espaço sub-hialoideo, delimitados pela hialoide posterior, sugestivos de hemorragia sub-hialoidea','imagens sugestivas de hemorragia sub-hialoidea']], t:'ecos puntiformes móveis, de baixa refletividade, dispersos na cavidade vítrea, sugestivos de hemorragia vítrea ou processo inflamatório intraocular', c:'imagens sugestivas de hemorragia vítrea ou processo inflamatório intraocular'},
   {id:'anec', l:'Cavidade vítrea anecoica', t:'cavidade vítrea anecoica', c:'cavidade vítrea anecoica'},
-  {id:'deg', l:'Degenerações vítreas', sub:[['ast','hialose asteroide','ecos puntiformes móveis, de alta refletividade, dispersos na cavidade vítrea, com espaço pré-retiniano livre, sugestivos de hialose asteroide'],['sinq','sínquise cintilante','ecos puntiformes muito móveis, de alta refletividade, com sedimentação inferior em repouso, sugestivos de sínquise cintilante']], t:'ecos membranáceos e puntiformes, de alta mobilidade e baixa refletividade, dispersos na cavidade vítrea, sugestivos de degenerações vítreas', c:'degenerações vítreas'},
+  {id:'deg', l:'Degenerações vítreas', sub:[['ast','hialose asteroide','ecos puntiformes móveis, de alta refletividade, dispersos na cavidade vítrea, sugestivos de hialose asteroide'],['sinq','sínquise cintilante','ecos puntiformes muito móveis, de alta refletividade, com sedimentação inferior em repouso, sugestivos de sínquise cintilante']], t:'ecos membranáceos e puntiformes, de alta mobilidade e baixa refletividade, dispersos na cavidade vítrea, sugestivos de degenerações vítreas', c:'degenerações vítreas'},
   {id:'ceio', l:'Corpo estranho', t:'eco de alta refletividade, com sombra acústica posterior, sugestivo de corpo estranho intraocular', c:'imagem sugestiva de corpo estranho intraocular'},
   {id:'tamp', l:'Tamponante', g:['óleo de silicone','gás','gotículas de óleo em suspensão'], t:'ecos de reverberação na cavidade vítrea, sugestivos de {g}', c:'imagens sugestivas de {g} na cavidade vítrea',
    gt:{2:'ecos puntiformes de alta refletividade, móveis, dispersos na cavidade vítrea, sugestivos de gotículas de óleo de silicone em suspensão'},
@@ -296,6 +296,7 @@ function phrase(f,v,kind){
   let s=kind==='c'?f.c:f.t;
   if(f.q){const a=(f.qo||QUADS).filter(x=>Array.isArray(v)&&v.includes(x));const j=andJoin(a);return s.replace('{q}',a.length?f.q+j:'').replace('{qc}',a.length?' ('+j+')':'');}
   if(f.sub){const a=f.sub.filter(x=>Array.isArray(v)&&v.includes(x[0]));if(!a.length)return s;
+    if(f.sc)return a.map(x=>kind==='c'?x[3]:x[2]);
     return kind==='c'?s+' ('+andJoin(a.map(x=>x[1]))+')':a.map(x=>x[2]);}
   const ov=kind==='c'?f.gc:f.gt;if(ov&&ov[+v]!==undefined)return ov[+v];
   return f.g?s.replace('{g}',f.g[+v]??f.g[0]):s;
