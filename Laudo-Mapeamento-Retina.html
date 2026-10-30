@@ -111,7 +111,12 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 .copy{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 14px;font-weight:600;cursor:pointer}
 :root[data-theme="dark"] .copy{color:#0E1317}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .copy{color:#0E1317}}
-pre#out{margin:0;padding:14px;font-family:var(--f-mono);font-size:.8rem;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;overflow:auto;flex:1;min-width:0}
+/* Laudo como folha: sempre fundo branco, Arial 12 justificado (igual ao que é copiado) */
+#out{margin:0;padding:18px 18px 22px;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;text-align:justify;hyphens:none;overflow:auto;flex:1;min-width:0;overflow-wrap:break-word}
+#out p{margin:0}
+/* Desliga o ajuste automático de fonte do iOS (ampliava o texto copiado) e evita zoom ao focar campos */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (pointer:coarse){input,select,textarea,.outro,.chip select,.les select,.field input,.field textarea{font-size:16px!important}}
 .foot{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
 
 .mbar{display:none}
@@ -155,8 +160,8 @@ pre#out{margin:0;padding:14px;font-family:var(--f-mono);font-size:.8rem;line-hei
     </main>
 
     <aside class="preview" aria-label="Laudo gerado">
-      <div class="prev-h"><span class="label">Laudo</span><button class="copy" id="copyTop">Copiar laudo</button></div>
-      <pre id="out" tabindex="0"></pre>
+      <div class="prev-h"><span class="label">Laudo</span><div class="actions"><button class="btn" id="copyPlain">Copiar texto simples</button><button class="copy" id="copyTop">Copiar laudo</button></div></div>
+      <div id="out" tabindex="0" lang="pt-BR"></div>
       <div class="foot">
         <div class="field"><label class="label" for="conduta">Conduta / observações</label><textarea id="conduta" placeholder="Ex.: Fotocoagulação a laser de barreira em OD. Retorno em 30 dias."></textarea></div>
         <div class="field"><label class="label" for="ass">Assinatura (fica salva neste navegador)</label><input type="text" id="ass" placeholder="Dr. Nome Sobrenome · CRM-BA 00000"></div>
@@ -382,8 +387,23 @@ function renderSections(){
 function refreshCard(id){const sec=SECTIONS.find(x=>x.id===id);const el=$('sec-'+id);const t=document.createElement('div');t.innerHTML=secCard(sec);el.replaceWith(t.firstElementChild);}
 function refreshPeri(){const eye=S.eyes[S.eye];$('dial').innerHTML=dial(eye);const n=eye.les.length+(eye.outro.peri.trim()?1:0);const p=document.querySelector('#sec-peri .pill');p.className='pill'+(n?' abn':'');p.textContent=n?n+(n>1?' achados':' achado'):'normal';}
 function refreshPill(id){const n=items(S.eyes[S.eye],SECTIONS.find(x=>x.id===id)).length;const p=document.querySelector('#sec-'+id+' .pill');p.className='pill'+(n?' abn':'');p.textContent=n?n+(n>1?' achados':' achado'):'normal';}
+/* Converte as linhas do laudo em HTML com estilo inline (preservado ao colar no Word/Pages) */
+const P='font-family:Arial,Helvetica,sans-serif;font-size:12pt;text-align:justify;margin:0;-webkit-text-size-adjust:100%;text-size-adjust:100%;';
+function reportHTML(){
+  const lines=report().split('\n');let sig=false;
+  return lines.map((l,i)=>{
+    if(l==='')return `<p style="${P}">&nbsp;</p>`;
+    if(i===0)return `<p style="${P}text-align:center;font-weight:bold">${esc(l)}</p>`;
+    if(/^_{5,}$/.test(l)){sig=true;return `<p style="${P}text-align:center">${esc(l)}</p>`;}
+    if(sig)return `<p style="${P}text-align:center">${esc(l)}</p>`;
+    if(/^[A-ZÀ-Ý ()]+$/.test(l))return `<p style="${P}"><b>${esc(l)}</b></p>`;
+    const m=!l.startsWith('- ')&&l.match(/^([^:]{2,60}):(\s|$)/);
+    if(m)return `<p style="${P}"><b>${esc(m[1])}:</b>${esc(l.slice(m[0].length-m[2].length))}</p>`;
+    return `<p style="${P}">${esc(l)}</p>`;
+  }).join('');
+}
 function update(){
-  $('out').textContent=report();
+  $('out').innerHTML=reportHTML();
   ['OD','OE'].forEach(e=>{$('c'+e).textContent=abnormal(S.eyes[e]).length;});
   $('mstat').textContent='OD '+abnormal(S.eyes.OD).length+' · OE '+abnormal(S.eyes.OE).length+' achados';
   save();
@@ -428,10 +448,25 @@ function bindTech(){$('dt').value=S.date;$('ind').value=S.ind;$('conduta').value
 $('ass').addEventListener('input',e=>{ASS=e.target.value;try{localStorage.setItem(KEYS,ASS);}catch(x){}update();});
 
 let tt;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,1800);}
-function copy(){const txt=report();
-  const sel=()=>{const r=document.createRange();r.selectNodeContents($('out'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Texto selecionado, use Copiar do sistema');};
-  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(()=>toast('Laudo copiado'),sel);}else sel();}
+/* Copia com formatação (HTML) e texto simples; se o navegador bloquear, tenta a cópia da seleção e, por fim, só seleciona */
+function copy(){
+  const txt=report(),html=`<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%}body,p,b{font-family:Arial,Helvetica,sans-serif;font-size:12pt}</style></head><body style="${P}">${reportHTML()}</body></html>`;
+  const selectOut=()=>{const r=document.createRange();r.selectNodeContents($('out'));const s=getSelection();s.removeAllRanges();s.addRange(r);return s;};
+  const legacy=()=>{const s=selectOut();let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    if(ok){s.removeAllRanges();toast('Laudo copiado');}else toast('Texto selecionado, use Copiar do sistema');};
+  try{
+    if(navigator.clipboard&&window.ClipboardItem){
+      const item=new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([txt],{type:'text/plain'})});
+      navigator.clipboard.write([item]).then(()=>toast('Laudo copiado'),legacy);return;
+    }
+  }catch(e){}
+  legacy();
+}
 $('copyTop').addEventListener('click',copy);$('copyBot').addEventListener('click',copy);
+/* Texto sem formatação: o app de destino aplica a própria fonte */
+$('copyPlain').addEventListener('click',()=>{const txt=report();
+  const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,txt.length);let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();toast(ok?'Texto simples copiado':'Não foi possível copiar');};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>toast('Texto simples copiado'),fb);else fb();});
 
 bindTech();setEye(S.eye||'OD');
 </script>
