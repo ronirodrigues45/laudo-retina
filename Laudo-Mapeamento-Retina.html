@@ -83,6 +83,10 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 .chip button{border:0;background:none;padding:5px 11px;font-size:.85rem;cursor:pointer;text-align:left}
 .chip.on{border-color:var(--accent);background:var(--accent-soft)}
 .chip.on button{color:var(--accent);font-weight:500}
+.impr-note{margin:0;padding:12px 14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:.9rem;background:var(--surface)}
+.qrow{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0}
+.chip.mini{background:var(--surface)}
+.chip.mini button{padding:4px 10px;font-size:.82rem}
 .chip select{border:0;border-left:1px solid var(--accent);border-radius:0 18px 18px 0;background:transparent;padding:5px 8px;font-size:.82rem;color:var(--accent);max-width:200px}
 .inline{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.88rem}
 .inline select{padding:4px 7px}
@@ -128,14 +132,9 @@ pre#out{margin:0;padding:14px;font-family:var(--f-mono);font-size:.8rem;line-hei
 
   <div class="grid">
     <main>
-      <section class="tech" aria-label="Técnica do exame">
+      <section class="tech" aria-label="Dados do exame">
         <div class="row">
           <div class="field"><label class="label" for="dt">Data</label><input type="date" id="dt"></div>
-          <div class="field"><label class="label" for="lente">Lente OBI</label>
-            <select id="lente"><option>20D</option><option>28D</option><option>30D</option></select></div>
-          <label class="check"><input type="checkbox" id="midr">Midríase medicamentosa</label>
-          <label class="check"><input type="checkbox" id="depr">Depressão escleral</label>
-          <label class="check"><input type="checkbox" id="bio">Biomicroscopia de fundo</label>
         </div>
         <div class="field"><label class="label" for="ind">Indicação clínica (opcional)</label><input type="text" id="ind" placeholder="Ex.: fotopsias e moscas volantes há 3 dias"></div>
       </section>
@@ -173,65 +172,58 @@ pre#out{margin:0;padding:14px;font-family:var(--f-mono);font-size:.8rem;line-hei
 document.getElementById("nojs").remove();
 const SECTIONS = [
  {id:'meios', name:'Meios e vítreo', normal:'transparentes, vítreo sem alterações', f:[
-  {id:'sin', l:'Sinérese', t:'sinérese vítrea'},
+  {id:'opac', l:'Opacidade de meios', t:'opacidade de meios {g}', g:['leve','moderada','impraticável'], gt:{'impraticável':'opacidade de meios que torna o exame impraticável'}},
+  {id:'hv', l:'Hemorragia vítrea', t:'hemorragia vítrea {g}', g:['leve','moderada','densa, sem visualização do fundo']},
   {id:'dvp', l:'Anel de Weiss', t:'anel de Weiss'},
   {id:'shafer', l:'Sinal de Shafer', t:'pigmento no vítreo anterior (sinal de Shafer)'},
-  {id:'hv', l:'Hemorragia vítrea', t:'hemorragia vítrea {g}', g:['leve','moderada','densa, sem visualização do fundo']},
   {id:'haze', l:'Haze vítreo', t:'haze vítreo'},
-  {id:'ast', l:'Hialose asteroide', t:'hialose asteroide'},
+  {id:'deg', l:'Degenerações vítreas', t:'degenerações vítreas', sub:[['sin','sinérese'],['ast','hialose asteroide'],['sinq','sínquise cintilante']]},
   {id:'sil', l:'Óleo de silicone', t:'óleo de silicone na cavidade vítrea'},
-  {id:'gas', l:'Gás', t:'gás na cavidade vítrea'},
-  {id:'opac', l:'Opacidade de meios', t:'opacidade de meios {g}', g:['leve','moderada','impraticável'], gt:{'impraticável':'opacidade de meios que torna o exame impraticável'}}
+  {id:'gas', l:'Gás', t:'gás na cavidade vítrea'}
  ]},
  {id:'disco', name:'Disco óptico', normal:'corado, de bordos nítidos', f:[
-  {id:'palt', l:'Palidez temporal', t:'palidez temporal'},
-  {id:'pald', l:'Palidez difusa', t:'palidez difusa'},
+  {id:'pal', l:'Palidez', t:'palidez de disco'},
+  {id:'obliq', l:'Disco oblíquo / tilted', t:'disco de inserção oblíqua (tilted)'},
+  {id:'nvd', l:'Neovasos de disco', t:'neovasos de disco'},
   {id:'edema', l:'Edema de disco', t:'edema de disco, bordos borrados'},
-  {id:'hemp', l:'Hemorragia peripapilar', t:'hemorragia peripapilar em chama de vela'},
-  {id:'notch', l:'Afinamento focal da rima', t:'afinamento focal da rima neural ({g})', g:['polo superior','polo inferior']},
-  {id:'nvd', l:'NVD', t:'neovasos de disco (NVD)'},
+  {id:'notch', l:'Afinamento focal da rima', t:'afinamento focal da rima neural', sl:'localização (opcional)', sub:[['superior','superior'],['inferior','inferior'],['nasal','nasal'],['temporal','temporal']]},
   {id:'atrof', l:'Atrofia peripapilar', t:'atrofia peripapilar'},
   {id:'fos', l:'Fosseta', t:'fosseta de disco óptico'},
-  {id:'drusd', l:'Drusas de disco', t:'drusas de disco óptico'},
-  {id:'obliq', l:'Disco oblíquo / tilted', t:'disco de inserção oblíqua (tilted)'}
+  {id:'drusd', l:'Drusas de disco', t:'drusas de disco óptico'}
  ]},
  {id:'macula', name:'Mácula', normal:'brilho foveal presente, sem alterações', f:[
-  {id:'bf', l:'Brilho foveal ausente', t:'brilho foveal ausente'},
-  {id:'mer', l:'MER', t:'membrana epirretiniana'},
-  {id:'bm', l:'Buraco macular', t:'buraco macular {g}', g:['de espessura total','lamelar']},
+  {id:'ma', l:'Microaneurismas', t:'microaneurismas'},
+  {id:'hem', l:'Hemorragia', t:'hemorragia macular', sj:'full', sub:[['pb','ponto-borrão','hemorragias intrarretinianas em ponto-borrão'],['cv','chama de vela','hemorragias em chama de vela'],['sr','sub-retiniana','hemorragia sub-retiniana'],['pr','pré-retiniana','hemorragia pré-retiniana']]},
+  {id:'exs', l:'Exsudatos duros', t:'exsudatos duros', sub:[['esp','esparsos'],['circ','circinados'],['conf','confluentes']]},
+  {id:'alg', l:'Manchas algodonosas', t:'manchas algodonosas'},
   {id:'em', l:'Edema macular', t:'espessamento macular sugestivo de edema'},
-  {id:'exm', l:'Exsudatos duros', t:'exsudatos duros maculares'},
-  {id:'estrela', l:'Estrela macular', t:'exsudatos em estrela macular'},
-  {id:'drusas', l:'Drusas', t:'drusas {g}', g:['pequenas','médias','grandes','reticulares (pseudodrusas)']},
-  {id:'epr', l:'Alteração do EPR', t:'alterações pigmentares do EPR'},
+  {id:'drusas', l:'Drusas', t:'drusas', sj:'word', sub:[['duras','duras'],['moles','moles'],['conf','confluentes']]},
+  {id:'epr', l:'Alterações pigmentares', t:'alterações pigmentares', sub:[['hiper','hiperpigmentação'],['hipo','hipopigmentação'],['mosq','mosqueamento']]},
   {id:'ag', l:'Atrofia geográfica', t:'atrofia geográfica'},
-  {id:'dep', l:'DEP', t:'descolamento do epitélio pigmentado'},
-  {id:'fsr', l:'Fluido sub-retiniano', t:'fluido sub-retiniano'},
-  {id:'hsr', l:'Hemorragia sub-retiniana', t:'hemorragia sub-retiniana'},
   {id:'disc', l:'Cicatriz disciforme', t:'cicatriz disciforme'},
-  {id:'mvc', l:'Mancha vermelho-cereja', t:'mancha vermelho-cereja'}
+  {id:'bf', l:'Brilho foveal reduzido', t:'brilho foveal reduzido'},
+  {id:'mer', l:'MER', t:'membrana epirretiniana'},
+  {id:'bm', l:'Buraco macular', t:'buraco macular'}
  ]},
  {id:'vasos', name:'Vasos', normal:'calibre e trajeto preservados', f:[
   {id:'estr', l:'Estreitamento arteriolar', t:'estreitamento arteriolar difuso'},
   {id:'cruz', l:'Cruzamentos AV patológicos', t:'cruzamentos arteriovenosos patológicos'},
-  {id:'tort', l:'Tortuosidade venosa', t:'tortuosidade venosa'},
+  {id:'tort', l:'Tortuosidade vascular', t:'tortuosidade vascular'},
   {id:'ensal', l:'Ensalsichamento venoso', t:'ensalsichamento venoso'},
   {id:'irma', l:'IRMA', t:'anormalidades microvasculares intrarretinianas (IRMA)'},
-  {id:'nve', l:'NVE', t:'neovasos de retina (NVE)'},
+  {id:'nve', l:'Neovasos de retina', t:'neovasos de retina'},
   {id:'emb', l:'Embainhamento', t:'embainhamento vascular'},
-  {id:'ov', l:'Oclusão venosa', t:'oclusão venosa {g}', g:['central','de ramo temporal superior','de ramo temporal inferior','hemicentral superior','hemicentral inferior']},
+  {id:'ov', l:'Oclusão venosa', t:'oclusão venosa {g}', g:['central','de ramo temporal superior','de ramo temporal inferior','hemirretiniana superior','hemirretiniana inferior']},
   {id:'oa', l:'Oclusão arterial', t:'oclusão arterial {g}', g:['central','de ramo temporal superior','de ramo temporal inferior','ciliorretiniana']},
   {id:'maa', l:'Macroaneurisma', t:'macroaneurisma arterial'},
   {id:'holl', l:'Placa de Hollenhorst', t:'êmbolo arteriolar (placa de Hollenhorst)'}
  ]},
  {id:'retina', name:'Retina (polo e média periferia)', normal:'aplicada em 360°', f:[
   {id:'ma', l:'Microaneurismas', t:'microaneurismas'},
-  {id:'hpm', l:'Hemorragias ponto e mancha', t:'hemorragias intrarretinianas em ponto e mancha'},
-  {id:'hcv', l:'Hemorragias em chama', t:'hemorragias em chama de vela'},
-  {id:'alg', l:'Exsudatos algodonosos', t:'exsudatos algodonosos'},
+  {id:'hem', l:'Hemorragia', t:'hemorragias retinianas', sj:'full', sub:[['pb','ponto-borrão','hemorragias intrarretinianas em ponto-borrão'],['cv','chama de vela','hemorragias em chama de vela'],['sr','sub-retiniana','hemorragia sub-retiniana'],['pr','pré-retiniana','hemorragia pré-retiniana']]},
+  {id:'alg', l:'Manchas algodonosas', t:'manchas algodonosas'},
   {id:'pfc', l:'Fotocoagulação prévia', t:'cicatrizes de fotocoagulação {g}', g:['panretiniana','setorial','focal/grid macular']},
   {id:'nevo', l:'Nevo de coroide', t:'nevo de coroide plano'},
-  {id:'chrpe', l:'HCEPR', t:'hipertrofia congênita do EPR'},
   {id:'cic', l:'Cicatriz coriorretiniana', t:'cicatriz coriorretiniana'},
   {id:'dr', l:'Descolamento de retina', t:'descolamento de retina {g}', g:['regmatogênico','tracional','exsudativo','misto (tracional-regmatogênico)']},
   {id:'mst', l:'Status macular', t:'{g}', g:['mácula aplicada (macula-on)','mácula descolada (macula-off)']},
@@ -247,28 +239,33 @@ const LES = [
 ];
 const TEARS = new Set(['buraco','ferr','operc','gig','dial','lattice_b']);
 const TRAT = [['','sem tratamento descrito'],['bar','com barreira de laser'],['ind','barreira de laser indicada'],['cri','com crioterapia prévia']];
+/* ICDR: Wilkinson et al., Ophthalmology 2003. Mitchell-Wong: Wong & Mitchell, N Engl J Med 2004 */
 const CLS = {
- icdr:{l:'Retinopatia diabética (ICDR)', o:['Sem retinopatia aparente','RD não proliferativa leve','RD não proliferativa moderada','RD não proliferativa grave','RD proliferativa']},
- dme:{l:'Edema macular diabético (ICDR)', o:['Ausente','Presente, sem envolvimento central','Presente, com envolvimento central']},
+ icdr:{l:'Retinopatia diabética (ETDRS simplificado)', o:['Sem retinopatia aparente','Não proliferativa leve','Não proliferativa moderada','Não proliferativa grave','Não proliferativa muito grave','Proliferativa']},
  mw:{l:'Retinopatia hipertensiva (Mitchell-Wong)', o:['Ausente','Leve','Moderada','Maligna']}
 };
-const CD = ['0,1','0,2','0,3','0,4','0,5','0,6','0,7','0,8','0,9','não avaliável'];
-const AV = ['2:3','1:2','1:3','1:4','não avaliável'];
+const CD = ['fisiológica','aumentada'];
 
 const KEY='mapeamento-retina-v1', KEYS='mapeamento-retina-ass';
-function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});o.peri='';return {sel:s,outro:o,cd:'0,3',av:'2:3',les:[],cls:{icdr:'',dme:'',mw:''}};}
+function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});o.peri='';return {sel:s,outro:o,cd:'fisiológica',les:[],cls:{icdr:'',mw:''}};}
 function today(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);}
-function blank(){return {date:today(),lente:'20D',midr:true,depr:true,bio:false,ind:'',conduta:'',eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
+function blank(){return {date:today(),ind:'',conduta:'',eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
 let S=blank();
 /* Normaliza laudos salvos por versões anteriores: descarta achados extintos e opções que não existem mais */
 function fixEye(eye){const b=blankEye();if(!eye||typeof eye!=='object')return b;
   SECTIONS.forEach(sec=>{const src=(eye.sel&&eye.sel[sec.id])||{};
-    sec.f.forEach(f=>{const v=src[f.id];if(v===undefined)return;b.sel[sec.id][f.id]=f.g?(f.g.includes(v)?v:true):true;});
+    if(sec.id==='disco'){if(src.pal===undefined&&(src.palt!==undefined||src.pald!==undefined))src.pal=true;
+      if(src.notch!==undefined&&!Array.isArray(src.notch))src.notch=src.notch==='polo inferior'?['inferior']:src.notch==='polo superior'||src.notch===true?['superior']:[];}
+    if(sec.id==='vasos'&&typeof src.ov==='string')src.ov=src.ov.replace('hemicentral','hemirretiniana');
+    if(sec.id==='retina'&&src.hem===undefined&&(src.hpm!==undefined||src.hcv!==undefined))src.hem=[src.hpm!==undefined?'pb':'',src.hcv!==undefined?'cv':''].filter(Boolean);
+    if(sec.id==='macula'){if(Array.isArray(src.exs)&&src.exs.includes('mole')&&src.alg===undefined)src.alg=true;if(Array.isArray(src.exs))src.exs=src.exs.filter(k=>k!=='duro'&&k!=='mole');if(src.exm!==undefined&&src.exs===undefined)src.exs=[];if(src.hsr!==undefined&&src.hem===undefined)src.hem=['sr'];}
+    if(sec.id==='meios'&&src.deg===undefined&&(src.ast!==undefined||src.sin!==undefined))src.deg=['sin','ast'].filter(k=>src[k]!==undefined);
+    sec.f.forEach(f=>{const v=src[f.id];if(v===undefined)return;b.sel[sec.id][f.id]=f.sub?(Array.isArray(v)?v.filter(k=>f.sub.some(x=>x[0]===k)):[]):f.g?(f.g.includes(v)?v:true):true;});
     if(eye.outro&&typeof eye.outro[sec.id]==='string')b.outro[sec.id]=eye.outro[sec.id];});
   if(eye.outro&&typeof eye.outro.peri==='string')b.outro.peri=eye.outro.peri;
-  if(CD.includes(eye.cd))b.cd=eye.cd;if(eye.av===''||AV.includes(eye.av))b.av=eye.av;
+  if(CD.includes(eye.cd))b.cd=eye.cd;
   if(Array.isArray(eye.les))b.les=eye.les.filter(l=>l&&LES.some(x=>x[0]===l.tipo));
-  if(eye.cls)Object.keys(CLS).forEach(k=>{if(eye.cls[k]===''||CLS[k].o.includes(eye.cls[k]))b.cls[k]=eye.cls[k];});
+  if(eye.cls)Object.keys(CLS).forEach(k=>{let v=eye.cls[k];if(typeof v==='string')v=v.replace(/^RD não p/,'Não p').replace(/^RD p/,'P');if(v===''||CLS[k].o.includes(v))b.cls[k]=v;});
   return b;}
 try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes&&p.eyes.OD){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';}}}catch(e){S=blank();}
 let ASS='';try{ASS=localStorage.getItem(KEYS)||'';}catch(e){}
@@ -279,7 +276,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
 const other=e=>e==='OD'?'OE':'OD';
 
-function phrase(f,v){const g=v===true?(f.g?f.g[0]:''):v;if(f.gt&&f.gt[g])return f.gt[g];return f.t.includes('{g}')?f.t.replace('{g}',g):f.t;}
+function phrase(f,v){if(f.sub){const a=f.sub.filter(x=>Array.isArray(v)&&v.includes(x[0])).map(x=>f.sj==='full'?x[2]:x[1]);const ts=f.ts||'';if(!a.length)return f.t+ts;const j=a.length>1?a.slice(0,-1).join(', ')+' e '+a[a.length-1]:a[0];return f.sj==='full'?j:f.sj==='word'?f.t+' '+j+ts:f.t+' ('+j+')'+ts;}
+  const g=v===true?(f.g?f.g[0]:''):v;if(f.gt&&f.gt[g])return f.gt[g];return f.t.includes('{g}')?f.t.replace('{g}',g):f.t;}
 function items(eye,sec){const sel=eye.sel[sec.id];const out=sec.f.filter(f=>sel[f.id]!==undefined).map(f=>phrase(f,sel[f.id]));const o=eye.outro[sec.id].trim();if(o)out.push(o);return out;}
 function hr(h,start){h=+h;if(start)return h===1?'da 1h':'das '+h+'h';return h===1?'à 1h':'às '+h+'h';}
 function lesLoc(l){if(+l.de===0)return 'em 360°';if(l.de===l.ate)return (+l.de===1?'à 1h':'às '+l.de+'h');return hr(l.de,true)+' '+hr(l.ate,false);}
@@ -287,25 +285,27 @@ function lesText(l){const n=(LES.find(x=>x[0]===l.tipo)||LES[0])[1];const t=TRAT
 function secText(eye,sec){
   const it=items(eye,sec);
   if(sec.id==='disco')return (it.length?it.join('; '):sec.normal)+', escavação '+eye.cd;
-  if(sec.id==='vasos')return (it.length?it.join('; '):sec.normal)+(eye.av?', relação AV '+eye.av:'');
   if(sec.id==='retina'){if(!it.length)return sec.normal;return eye.sel.retina.dr!==undefined?it.join('; '):sec.normal+'; '+it.join('; ');}
   return it.length?it.join('; '):sec.normal;
 }
 function periText(eye){const a=eye.les.map(lesText);const o=eye.outro.peri.trim();if(o)a.push(o);return a.length?a.join('; '):'sem roturas ou degenerações predisponentes ao descolamento de retina';}
+/* Opacidade de meios impraticável: o olho não pôde ser examinado, demais achados são omitidos */
+const IMPR='opacidade de meios que torna o exame impraticável';
+const impr=eye=>eye.sel.meios.opac==='impraticável';
 function abnormal(eye){
-  const a=[];SECTIONS.forEach(s=>a.push(...items(eye,s)));
+  if(impr(eye))return [IMPR];
+  const a=[];SECTIONS.forEach(s=>{a.push(...items(eye,s));if(s.id==='disco'&&eye.cd==='aumentada')a.push('escavação aumentada');});
   a.push(...eye.les.map(lesText));if(eye.outro.peri.trim())a.push(eye.outro.peri.trim());
-  Object.keys(CLS).forEach(k=>{const v=eye.cls[k];if(v&&!/^(Ausente|Sem retinopatia)/.test(v))a.push(CLS[k].l.replace(/ \(.*\)/,'')+': '+v.toLowerCase());});
+  Object.keys(CLS).forEach(k=>{const v=eye.cls[k];if(v&&!/^(Ausente|Sem retinopatia)/.test(v))a.push(CLS[k].l.replace(/ \(.*\)/,'').toLowerCase()+' '+v.toLowerCase());});
   return a;
 }
 function fmtDate(d){if(!d)return '';const [y,m,dd]=d.split('-');return dd+'/'+m+'/'+y;}
 function report(){
-  let tec='Oftalmoscopia binocular indireta'+(S.midr?' sob midríase medicamentosa':'')+', com lente de '+S.lente+(S.depr?' e depressão escleral':'');
-  if(S.bio)tec+='; biomicroscopia de fundo';
-  const L=['MAPEAMENTO DE RETINA','','Data: '+fmtDate(S.date),'Técnica: '+tec+'.'];
+  const L=['MAPEAMENTO DE RETINA','','Data: '+fmtDate(S.date)];
   if(S.ind.trim())L.push('Indicação: '+S.ind.trim().replace(/\.$/,'')+'.');
   ['OD','OE'].forEach(e=>{
     const eye=S.eyes[e];L.push('',e==='OD'?'OLHO DIREITO (OD)':'OLHO ESQUERDO (OE)');
+    if(impr(eye)){L.push('- '+cap(IMPR)+'.');return;}
     SECTIONS.forEach(s=>L.push('- '+s.name+': '+secText(eye,s)+'.'));
     L.push('- Periferia: '+periText(eye)+'.');
     Object.keys(CLS).forEach(k=>{if(eye.cls[k])L.push('- '+CLS[k].l+': '+eye.cls[k].toLowerCase()+'.');});
@@ -319,15 +319,19 @@ function report(){
 
 /* ---------- render ---------- */
 function opts(list,val){return list.map(o=>{const v=Array.isArray(o)?o[0]:o,t=Array.isArray(o)?o[1]:o;return `<option value="${esc(v)}"${v===val?' selected':''}>${esc(t)}</option>`;}).join('');}
+function subRows(sec,sel){
+  return sec.f.filter(f=>f.sub&&sel[f.id]!==undefined).map(f=>{const cur=Array.isArray(sel[f.id])?sel[f.id]:(sel[f.id]=[]);
+    return `<div class="qrow"><span class="label">${esc(f.l)}: ${f.sl||'subtipo (opcional)'}</span><div class="chips">${f.sub.map(([k,l])=>{const on=cur.includes(k);
+      return `<span class="chip mini${on?' on':''}"><button type="button" data-s="${sec.id}" data-sf="${f.id}" data-sk="${k}" aria-pressed="${on}">${esc(cap(l))}</button></span>`;}).join('')}</div></div>`;}).join('');
+}
 function secCard(sec){
   const eye=S.eyes[S.eye],sel=eye.sel[sec.id];const n=items(eye,sec).length;
   let extra='';
-  if(sec.id==='disco')extra=`<div class="inline"><label for="cd">Escavação (C/D)</label><select id="cd" data-x="cd">${opts(CD,eye.cd)}</select></div>`;
-  if(sec.id==='vasos')extra=`<div class="inline"><label for="av">Relação AV</label><select id="av" data-x="av"><option value="">não descrever</option>${opts(AV,eye.av)}</select></div>`;
+  if(sec.id==='disco')extra=`<div class="inline"><label for="cd">Escavação</label><select id="cd" data-x="cd">${opts(CD,eye.cd)}</select></div>`;
   const chips=sec.f.map(f=>{const on=sel[f.id]!==undefined;const v=sel[f.id]===true?(f.g?f.g[0]:''):sel[f.id];
     return `<span class="chip${on?' on':''}"><button type="button" data-s="${sec.id}" data-f="${f.id}" aria-pressed="${on}">${esc(f.l)}</button>${on&&f.g?`<select aria-label="${esc(f.l)}: grau" data-s="${sec.id}" data-g="${f.id}">${opts(f.g,v)}</select>`:''}</span>`;}).join('');
   return `<section class="sec" id="sec-${sec.id}"><div class="sec-h"><h2>${esc(sec.name)}</h2><span class="pill${n?' abn':''}">${n?n+(n>1?' achados':' achado'):'normal'}</span></div>
-  ${extra}<div class="chips">${chips}</div>
+  ${extra}<div class="chips">${chips}</div>${subRows(sec,sel)}
   <input class="outro" id="o-${sec.id}" data-o="${sec.id}" type="text" placeholder="Outro achado (texto livre)" value="${esc(eye.outro[sec.id])}"></section>`;
 }
 function periCard(){
@@ -371,6 +375,8 @@ function dial(eye){
   return s+'</svg>';
 }
 function renderSections(){
+  const eye=S.eyes[S.eye];
+  if(impr(eye)){$('sections').innerHTML=secCard(SECTIONS[0])+`<p class="impr-note">Exame impraticável em ${S.eye}: as demais estruturas não entram no laudo deste olho. Os achados marcados ficam guardados e voltam se você mudar a opacidade de meios.</p>`;return;}
   $('sections').innerHTML=SECTIONS.map(secCard).join('')+periCard();
 }
 function refreshCard(id){const sec=SECTIONS.find(x=>x.id===id);const el=$('sec-'+id);const t=document.createElement('div');t.innerHTML=secCard(sec);el.replaceWith(t.firstElementChild);}
@@ -389,14 +395,16 @@ function setEye(e){S.eye=e;$('app').dataset.eye=e;document.querySelectorAll('.se
 const secs=$('sections');
 secs.addEventListener('click',ev=>{
   const b=ev.target.closest('button');if(!b)return;const eye=S.eyes[S.eye];
-  if(b.dataset.f){const sel=eye.sel[b.dataset.s];if(sel[b.dataset.f]!==undefined)delete sel[b.dataset.f];else sel[b.dataset.f]=true;refreshCard(b.dataset.s);update();
+  if(b.dataset.sf){const ss=eye.sel[b.dataset.s];if(!Array.isArray(ss[b.dataset.sf]))ss[b.dataset.sf]=[];const a=ss[b.dataset.sf],i=a.indexOf(b.dataset.sk);const fdef=SECTIONS.find(x=>x.id===b.dataset.s).f.find(x=>x.id===b.dataset.sf);if(i>=0)a.splice(i,1);else{if(fdef&&fdef.one)a.length=0;a.push(b.dataset.sk);}
+    refreshCard(b.dataset.s);update();const nb=document.querySelector(`button[data-sf="${b.dataset.sf}"][data-sk="${b.dataset.sk}"]`);if(nb)nb.focus();return;}
+  if(b.dataset.f){const was=impr(eye);const sel=eye.sel[b.dataset.s];const fd=SECTIONS.find(x=>x.id===b.dataset.s).f.find(x=>x.id===b.dataset.f);if(sel[b.dataset.f]!==undefined)delete sel[b.dataset.f];else sel[b.dataset.f]=fd&&fd.sub?[]:true;if(was!==impr(eye))renderSections();else refreshCard(b.dataset.s);update();
     const nb=document.querySelector(`#sec-${b.dataset.s} button[data-f="${b.dataset.f}"]`);if(nb)nb.focus();return;}
   if(b.id==='addLes'){const last=eye.les[eye.les.length-1];eye.les.push({tipo:'lattice',de:last?last.de:'12',ate:last?last.ate:'12',trat:''});renderSections();update();return;}
   if(b.dataset.rm!==undefined){eye.les.splice(+b.dataset.rm,1);renderSections();update();}
 });
 secs.addEventListener('change',ev=>{
   const t=ev.target,eye=S.eyes[S.eye];
-  if(t.dataset.g){eye.sel[t.dataset.s][t.dataset.g]=t.value;update();}
+  if(t.dataset.g){const was=impr(eye);eye.sel[t.dataset.s][t.dataset.g]=t.value;if(was!==impr(eye))renderSections();update();}
   else if(t.dataset.x){eye[t.dataset.x]=t.value;update();}
   else if(t.dataset.c){eye.cls[t.dataset.c]=t.value;update();}
   else if(t.dataset.l!==undefined){const l=eye.les[+t.dataset.l];l[t.dataset.k]=t.value;
@@ -414,8 +422,8 @@ $('resetAll').addEventListener('click',ev=>{const b=ev.currentTarget;
   clearTimeout(armed);armed=null;b.textContent='Novo laudo';b.classList.remove('warn');
   S=blank();bindTech();setEye('OD');toast('Novo laudo iniciado, ambos os olhos normais');});
 
-function bindTech(){$('dt').value=S.date;$('lente').value=S.lente;$('midr').checked=S.midr;$('depr').checked=S.depr;$('bio').checked=S.bio;$('ind').value=S.ind;$('conduta').value=S.conduta;$('ass').value=ASS;}
-[['dt','date','value'],['lente','lente','value'],['midr','midr','checked'],['depr','depr','checked'],['bio','bio','checked'],['ind','ind','value'],['conduta','conduta','value']]
+function bindTech(){$('dt').value=S.date;$('ind').value=S.ind;$('conduta').value=S.conduta;$('ass').value=ASS;}
+[['dt','date','value'],['ind','ind','value'],['conduta','conduta','value']]
  .forEach(([id,k,p])=>{const el=$(id);el.addEventListener(el.type==='checkbox'||el.tagName==='SELECT'?'change':'input',()=>{S[k]=el[p];update();});});
 $('ass').addEventListener('input',e=>{ASS=e.target.value;try{localStorage.setItem(KEYS,ASS);}catch(x){}update();});
 
