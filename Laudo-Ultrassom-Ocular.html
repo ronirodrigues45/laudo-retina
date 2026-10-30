@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Laudo de Ultrassom Ocular</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Mesmo sistema visual do Laudo de Mapeamento: formulário por olho | laudo ao vivo. OD = tom quente, OE = azul. */
+:root{
+  --bg:#F2F4F5; --surface:#FFFFFF; --ink:#15202A; --muted:#5A6773; --line:#D8DEE3;
+  --od:#B0461F; --od-soft:#F6E3DA; --oe:#21608C; --oe-soft:#DCE8F1;
+  --warn:#C0262D;
+  --accent:var(--od); --accent-soft:var(--od-soft);
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-label:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1317; --surface:#161E25; --ink:#E3E9ED; --muted:#93A0AB; --line:#2A3540;
+  --od:#E5835A; --od-soft:#3A241B; --oe:#74AEDB; --oe-soft:#182B3A; --warn:#F0676C; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1317; --surface:#161E25; --ink:#E3E9ED; --muted:#93A0AB; --line:#2A3540;
+  --od:#E5835A; --od-soft:#3A241B; --oe:#74AEDB; --oe-soft:#182B3A; --warn:#F0676C; color-scheme:dark }
+[data-eye="OE"]{ --accent:var(--oe); --accent-soft:var(--oe-soft) }
+
+*{box-sizing:border-box}
+/* Desliga o ajuste automático de fonte do iOS (ampliava o texto copiado para o Pages/Word) */
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:env(safe-area-inset-top,0px);padding-bottom:96px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.wrap{max-width:1180px;margin:0 auto}
+header.top{padding-block:20px 8px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:.85rem;margin:0}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.label{font-family:var(--f-label);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+.tech{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.grow{flex:1 1 220px}
+.field input[type=text],.field input[type=date],.field textarea,select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+.field input.num{width:96px;font-family:var(--f-mono)}
+.field textarea{resize:vertical;min-height:58px;width:100%}
+.check{display:flex;gap:6px;align-items:center;font-size:.9rem;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+
+.eyebar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);margin-bottom:14px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:8px 16px;font-family:var(--f-label);font-weight:600;font-size:.95rem;letter-spacing:.04em;cursor:pointer;display:flex;gap:8px;align-items:center}
+.seg button:disabled{opacity:.35;cursor:not-allowed}
+.seg button[aria-pressed="true"][data-e="OD"]{background:var(--od);color:#fff}
+.seg button[aria-pressed="true"][data-e="OE"]{background:var(--oe);color:#fff}
+.seg.small button{padding:6px 12px;font-size:.85rem}
+.seg.small button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+:root[data-theme="dark"] .seg button[aria-pressed="true"][data-e]{color:#0E1317}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"][data-e]{color:#0E1317}}
+.count{font-family:var(--f-mono);font-size:.75rem;font-weight:500;min-width:20px;padding:0 5px;border-radius:9px;border:1px solid currentColor;opacity:.85;font-variant-numeric:tabular-nums}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:7px 11px;font-size:.85rem;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.warn{color:var(--warn);border-color:var(--warn)}
+
+.sections{display:flex;flex-direction:column;gap:12px}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.sec-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec-h h2{font-family:var(--f-label);font-weight:600;font-size:1rem;margin:0;letter-spacing:.02em}
+.pill{font-family:var(--f-label);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+.pill.abn{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.pill.lim{color:var(--warn);border-color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:18px;background:var(--bg);max-width:100%}
+.chip button{border:0;background:none;padding:5px 11px;font-size:.85rem;cursor:pointer;text-align:left}
+.chip.on{border-color:var(--accent);background:var(--accent-soft)}
+.chip.on button{color:var(--accent);font-weight:500}
+.chip select{border:0;border-left:1px solid var(--accent);border-radius:0 18px 18px 0;background:transparent;padding:5px 8px;font-size:.82rem;color:var(--accent);max-width:230px}
+.grp{font-family:var(--f-label);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:2px 0 -4px}
+.inline{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:.88rem}
+.inline select{padding:5px 8px;max-width:100%}
+.outro{width:100%;background:var(--bg);border:1px dashed var(--line);border-radius:6px;padding:7px 9px;font-size:.88rem}
+.outro:focus{border-style:solid}
+
+.qrow{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0}
+.qbody{display:flex;gap:12px;align-items:center}
+.qbody .chips{flex:1;min-width:0}
+.fdial{width:118px;flex:none}
+.fdial svg{width:100%;height:auto;display:block}
+.fdial [data-qf]{cursor:pointer}
+.fdial .cap{font-size:.7rem;color:var(--muted);text-align:center;margin-top:2px;font-family:var(--f-label);letter-spacing:.04em}
+.chip.mini{background:var(--surface)}
+.chip.mini button{padding:4px 10px;font-size:.82rem}
+
+.preview{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:calc(100vh - 24px)}
+@media (max-width:900px){.preview{position:static;max-height:none}}
+.prev-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);gap:8px}
+.copy{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 14px;font-weight:600;cursor:pointer}
+:root[data-theme="dark"] .copy{color:#0E1317}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .copy{color:#0E1317}}
+/* Laudo como folha: sempre fundo branco, Arial 12 justificado (igual ao que é copiado e impresso) */
+#out{margin:0;padding:18px 18px 22px;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;text-align:justify;hyphens:none;overflow:auto;flex:1;min-width:0;overflow-wrap:break-word;border-radius:0 0 0 0}
+#out p{margin:0}
+#out .rt{text-align:center;font-weight:bold}
+#out .sig{text-align:center}
+.foot{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+
+.mbar{display:none}
+@media (max-width:900px){.mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:6;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}}
+/* iOS amplia a página ao focar campos com fonte < 16px; em telas de toque, fixa 16px */
+@media (pointer:coarse){input,select,textarea,.outro,.chip select,.field input,.field textarea{font-size:16px!important}}
+.mbar .actions{flex-wrap:nowrap}
+.mbar .label{white-space:nowrap}
+.credit{max-width:1180px;margin:28px auto 8px;text-align:center;font-family:var(--f-label);font-size:.78rem;letter-spacing:.06em;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:.88rem;z-index:20}
+@media (prefers-reduced-motion:no-preference){.chip,.btn{transition:border-color .15s,background .15s}}
+
+@media print{
+  body{background:#fff;padding:0}
+  .wrap > header, main, .prev-h, .foot, .mbar, .toast, .credit{display:none!important}
+  .grid{display:block}
+  .preview{border:0;position:static;max-height:none}
+  #out{padding:0;overflow:visible}
+  @page{margin:2cm}
+}
+</style>
+<body>
+
+<div class="wrap" id="app" data-eye="OD">
+  <header class="top">
+    <h1>Laudo de Ultrassonografia Ocular</h1>
+    <p class="sub">Sem seleção, a estrutura sai normal. Achado igual nos dois olhos sai como AO.</p>
+  </header>
+
+  <div class="grid">
+    <main>
+      <section class="tech" aria-label="Dados do exame">
+        <div class="field"><label class="label" for="pac">Paciente (opcional)</label><input type="text" id="pac" placeholder="Nome do paciente"></div>
+        <div class="field"><label class="label" for="ind">Indicação clínica (opcional)</label>
+          <input type="text" id="ind" list="indList" placeholder="Ex.: opacidade de meios">
+          <datalist id="indList">
+            <option value="opacidade de meios">
+            <option value="catarata densa, pré-operatório">
+            <option value="hemorragia vítrea">
+            <option value="suspeita de descolamento de retina">
+            <option value="trauma ocular">
+            <option value="controle pós-operatório">
+          </datalist></div>
+        <div class="row">
+          <div class="field grow"><label class="label" for="ca">Comprimento axial comparativo</label>
+            <select id="ca">
+              <option value="sim">Simétrico</option>
+              <option value="aOD">Assimétrico, aumento do diâmetro AP de OD</option>
+              <option value="aOE">Assimétrico, aumento do diâmetro AP de OE</option>
+              <option value="dOD">Assimétrico, diminuição do diâmetro AP de OD</option>
+              <option value="dOE">Assimétrico, diminuição do diâmetro AP de OE</option>
+              <option value="">Não descrever</option>
+            </select></div>
+          <div class="field"><label class="label" for="alOD">OD (mm)</label><input class="num" type="text" inputmode="decimal" id="alOD" placeholder="opcional"></div>
+          <div class="field"><label class="label" for="alOE">OE (mm)</label><input class="num" type="text" inputmode="decimal" id="alOE" placeholder="opcional"></div>
+        </div>
+      </section>
+
+      <div class="eyebar">
+        <div class="seg" role="group" aria-label="Olho em edição" id="eyeseg">
+          <button type="button" data-e="OD" aria-pressed="true">OD <span class="count" id="cOD">0</span></button>
+          <button type="button" data-e="OE" aria-pressed="false">OE <span class="count" id="cOE">0</span></button>
+        </div>
+        <div class="actions">
+          <button class="btn" id="copyEye">Copiar para OE</button>
+          <button class="btn" id="normEye">Olho normal</button>
+          <button class="btn" id="resetAll">Novo laudo</button>
+        </div>
+      </div>
+
+      <div class="sections" id="sections"></div>
+    </main>
+
+    <aside class="preview" aria-label="Laudo gerado">
+      <div class="prev-h"><span class="label">Laudo</span>
+        <div class="actions"><button class="btn" id="printBtn">Imprimir</button><button class="btn" id="copyPlain">Copiar texto simples</button><button class="copy" id="copyTop">Copiar laudo</button></div></div>
+      <div id="out" tabindex="0" lang="pt-BR"></div>
+      <div class="foot">
+        <div class="field"><label class="label" for="obs">Observações (opcional)</label><textarea id="obs" placeholder="Ex.: Sugere-se correlação clínica."></textarea></div>
+        <div class="field"><label class="label" for="ass">Assinatura (fica salva neste navegador)</label><input type="text" id="ass" placeholder="Dr. Nome Sobrenome · CRM-BA 00000"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer class="credit">Desenvolvido por RJFR</footer>
+
+<div class="mbar"><span class="label" id="mstat">OD · OE</span><div class="actions"><button class="btn" id="seeBot">Ver laudo</button><button class="copy" id="copyBot">Copiar laudo</button></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* Cada achado: t = descrição ecográfica, c = conclusão. {g} recebe a opção do seletor. */
+const LENS = {
+ fac:{l:'Fácico', subs:[['int','Intumescente'],['des','Em desorganização'],['sub','Subluxado'],['lux','Luxado (vítreo)']]},
+ pseudo:{l:'Pseudofácico', subs:[['desl','LIO subluxada'],['luxl','LIO luxada (vítreo)'],['frag','Fragmento em cavidade vítrea']]},
+ afac:{l:'Afácico', subs:[['frag','Fragmento em cavidade vítrea']]}
+};
+const LENS_EXCL = {sub:'lux',lux:'sub',desl:'luxl',luxl:'desl'};
+const FRAG = ['eco de média a alta refletividade, sugestivo de fragmento cristaliniano na cavidade vítrea','imagem sugestiva de fragmento cristaliniano na cavidade vítrea'];
+/* Descrição (t) ou conclusão (c) do cristalino de um olho: retorna lista de frases */
+function lensPhr(eye,kind){
+  const h=k=>eye.lsub.includes(k);const out=[];
+  if(eye.lens==='fac'){
+    const pos=h('lux')?'luxados para a cavidade vítrea':h('sub')?'deslocados':'tópicos';
+    const q=[];if(h('int'))q.push('intumescentes');if(h('des'))q.push('em desorganização');
+    const parts=pos==='tópicos'?[pos,...q]:[...q,pos];
+    if(kind==='t')out.push('ecos cristalinianos presentes'+(parts.length===1?' e '+pos:', '+andJoin(parts)));
+    else{const a=[];if(h('int'))a.push('intumescente');if(h('des'))a.push('em desorganização');if(h('sub'))a.push('subluxado');if(h('lux'))a.push('luxado para a cavidade vítrea');
+      out.push('fácico'+(a.length?', cristalino '+andJoin(a):''));}
+  }else if(eye.lens==='pseudo'){
+    if(kind==='t')out.push(h('luxl')?'ecos reverberantes na cavidade vítrea, sugestivos de lente intraocular luxada':h('desl')?'ecos reverberantes deslocados, sugestivos de lente intraocular subluxada':'ecos tópicos, reverberando para a cavidade vítrea, sugestivos de lente intraocular');
+    else out.push('pseudofácico'+(h('luxl')?', lente intraocular luxada para a cavidade vítrea':h('desl')?', lente intraocular subluxada':''));
+  }else{
+    out.push(kind==='t'?'ecos cristalinianos não visualizados':'afácico');
+  }
+  if(eye.lens!=='fac'&&h('frag'))out.push(FRAG[kind==='t'?0:1]);
+  const o=eye.outro.lens.trim();if(o)out.push(o);
+  return out;
+}
+
+const SECTIONS = [
+ {id:'vit', name:'Cavidade vítrea', normal:['vítreo sem alterações ecográficas',''], f:[
+  {id:'dvpp', l:'DVP parcial', t:'eco membranáceo móvel, de baixa refletividade, aderido à parede posterior, sugestivo de descolamento do vítreo posterior parcial', c:'imagens sugestivas de descolamento do vítreo posterior parcial'},
+  {id:'dvpt', l:'DVP total', t:'eco membranáceo móvel, de baixa refletividade, sem aderência à parede posterior, sugestivo de descolamento do vítreo posterior total', c:'imagens sugestivas de descolamento do vítreo posterior total'},
+  {id:'punc', l:'Ecos puntiformes', g:['hemorragia vítrea','processo inflamatório intraocular','hemorragia vítrea ou processo inflamatório intraocular'], t:'ecos puntiformes móveis, de baixa refletividade, dispersos na cavidade vítrea, sugestivos de {g}', c:'imagens sugestivas de {g}'},
+  {id:'anec', l:'Cavidade vítrea anecoica', t:'cavidade vítrea anecoica', c:'cavidade vítrea anecoica'},
+  {id:'deg', l:'Degenerações vítreas', sub:[['ast','hialose asteroide','ecos puntiformes móveis, de alta refletividade, dispersos na cavidade vítrea, com espaço pré-retiniano livre, sugestivos de hialose asteroide'],['sinq','sínquise cintilante','ecos puntiformes muito móveis, de alta refletividade, com sedimentação inferior em repouso, sugestivos de sínquise cintilante']], t:'ecos membranáceos e puntiformes, de alta mobilidade e baixa refletividade, dispersos na cavidade vítrea, sugestivos de degenerações vítreas', c:'degenerações vítreas'},
+  {id:'ceio', l:'Corpo estranho', t:'eco de alta refletividade, com sombra acústica posterior, sugestivo de corpo estranho intraocular', c:'imagem sugestiva de corpo estranho intraocular'},
+  {id:'tamp', l:'Tamponante', g:['óleo de silicone','gás','gotículas de óleo em suspensão'], t:'ecos de reverberação na cavidade vítrea, sugestivos de {g}', c:'imagens sugestivas de {g} na cavidade vítrea',
+   gt:{2:'ecos puntiformes de alta refletividade, móveis, dispersos na cavidade vítrea, sugestivos de gotículas de óleo de silicone em suspensão'},
+   gc:{2:'imagens sugestivas de gotículas de óleo de silicone em suspensão na cavidade vítrea'}}
+ ]},
+ {id:'ret', name:'Retina e coroide', normal:['retina aplicada','ausência de imagens sugestivas de descolamento de retina'], f:[
+  {id:'drp', l:'DR parcial', q:' ', t:'eco membranáceo de baixa mobilidade e alta refletividade, aderido à parede{q}, sugestivo de descolamento de retina parcial', c:'imagens sugestivas de descolamento de retina parcial{qc}'},
+  {id:'drt', l:'DR total', t:'eco membranáceo de baixa mobilidade e alta refletividade, aderido anteriormente à periferia e posteriormente ao nervo óptico, sugestivo de descolamento de retina total', c:'imagens sugestivas de descolamento de retina total'},
+  {id:'drtr', l:'DR tracional', t:'eco membranáceo de alta refletividade, com elevação em tenda e tração vítrea associada, sugestivo de descolamento de retina tracional', c:'imagens sugestivas de descolamento de retina tracional'},
+  {id:'dc', l:'Descolamento de coroide', q:', em região ', t:'ecos membranáceos espessos, convexos e imóveis, de alta refletividade, sem aderência ao nervo óptico{q}, sugestivos de descolamento de coroide', c:'imagens sugestivas de descolamento de coroide{qc}'},
+  {id:'pfc', l:'Perfluorcarbono', t:'eco arredondado de alta refletividade na retina, com reverberação posterior, sugestivo de gota de perfluorcarbono', c:'imagem sugestiva de gota de perfluorcarbono'},
+  {id:'les', l:'Lesão elevada de parede', q:', de localização ', qo:['superior','inferior','temporal','nasal','macular','peripapilar'], t:'imagem elevada na parede ocular{q}', c:'imagem elevada a esclarecer na parede ocular{qc}'}
+ ]}
+];
+const QUADS = ['superior','inferior','temporal','nasal'];
+const DR_IDS = ['drp','drt','drtr'];
+const CA = {sim:'simétrico',aOD:'assimétrico, às custas de aumento do diâmetro anteroposterior do olho direito',aOE:'assimétrico, às custas de aumento do diâmetro anteroposterior do olho esquerdo',dOD:'assimétrico, às custas de diminuição do diâmetro anteroposterior do olho direito',dOE:'assimétrico, às custas de diminuição do diâmetro anteroposterior do olho esquerdo'};
+
+const KEY='usg-ocular-v4', KEYS='usg-ocular-ass';
+function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});o.lens='';return {lens:'fac',lsub:[],sel:s,outro:o,ot:''};}
+function blank(){return {pac:'',ind:'',ca:'sim',alOD:'',alOE:'',obs:'',eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
+/* Normaliza um olho salvo por versões anteriores: remove achados extintos e corrige formatos */
+function fixEye(eye){
+  const b=blankEye();if(!eye||typeof eye!=='object')return b;
+  const out={lens:LENS[eye.lens]?eye.lens:'fac',lsub:[],sel:{},outro:{},ot:typeof eye.ot==='string'?eye.ot:''};
+  const okSub=LENS[out.lens].subs.map(x=>x[0]);
+  if(Array.isArray(eye.lsub))out.lsub=eye.lsub.filter(k=>okSub.includes(k));
+  SECTIONS.forEach(sec=>{
+    const src=(eye.sel&&eye.sel[sec.id])||{};out.sel[sec.id]={};
+    sec.f.forEach(f=>{const v=src[f.id];if(v===undefined)return;
+      if(f.q||f.sub){const ok=f.q?(f.qo||QUADS):f.sub.map(x=>x[0]);out.sel[sec.id][f.id]=Array.isArray(v)?v.filter(k=>ok.includes(k)):[];}
+      else if(f.g){const n=+v;out.sel[sec.id][f.id]=Number.isInteger(n)&&n>=0&&n<f.g.length?n:0;}
+      else out.sel[sec.id][f.id]=0;});
+    out.outro[sec.id]=(eye.outro&&typeof eye.outro[sec.id]==='string')?eye.outro[sec.id]:'';
+  });
+  out.outro.lens=(eye.outro&&typeof eye.outro.lens==='string')?eye.outro.lens:'';
+  return out;
+}
+let S=blank();
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';if(S.ca&&!CA[S.ca])S.ca='sim';}}}catch(e){S=blank();}
+let ASS='';try{ASS=localStorage.getItem(KEYS)||localStorage.getItem('mapeamento-retina-ass')||'';}catch(e){}
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}},300);}
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const other=e=>e==='OD'?'OE':'OD';
+const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:null;};
+const fmt=n=>n.toFixed(2).replace('.',',');
+const andJoin=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' e '+a[a.length-1];
+
+function phrase(f,v,kind){
+  let s=kind==='c'?f.c:f.t;
+  if(f.q){const a=(f.qo||QUADS).filter(x=>Array.isArray(v)&&v.includes(x));const j=andJoin(a);return s.replace('{q}',a.length?f.q+j:'').replace('{qc}',a.length?' ('+j+')':'');}
+  if(f.sub){const a=f.sub.filter(x=>Array.isArray(v)&&v.includes(x[0]));if(!a.length)return s;
+    return kind==='c'?s+' ('+andJoin(a.map(x=>x[1]))+')':a.map(x=>x[2]);}
+  const ov=kind==='c'?f.gc:f.gt;if(ov&&ov[+v]!==undefined)return ov[+v];
+  return f.g?s.replace('{g}',f.g[+v]??f.g[0]):s;
+}
+/* Silicone e gás limitam a avaliação posterior; gotículas residuais não */
+const limited=eye=>eye.sel.vit.tamp!==undefined&&+eye.sel.vit.tamp<2;
+function eyeItems(eye,sec,kind){
+  const sel=eye.sel[sec.id];const out=sec.f.filter(f=>sel[f.id]!==undefined).flatMap(f=>[].concat(phrase(f,sel[f.id],kind)));
+  const o=eye.outro[sec.id].trim();if(o)out.push(o);
+  return out;
+}
+/* Descrição/conclusão de uma estrutura para um olho, incluindo o texto de normalidade */
+function eyeLines(eye,sec,kind){
+  const it=eyeItems(eye,sec,kind);
+  if(sec.id==='ret'){
+    const hasDR=DR_IDS.some(id=>eye.sel.ret[id]!==undefined);
+    if(limited(eye)&&!hasDR)return kind==='t'?(it.length?it:['retina com avaliação prejudicada pelo tamponante']):it;
+    if(!hasDR)return kind==='t'?(it.length?it:[sec.normal[0]]):[...it,sec.normal[1]];
+    return it;
+  }
+  if(it.length)return it;const nl=sec.normal[kind==='t'?0:1];return nl?[nl]:[];
+}
+/* Agrupa frases idênticas dos dois olhos em AO */
+const EYE_LONG={AO:'em ambos os olhos',OD:'no olho direito',OE:'no olho esquerdo'};
+function group(lists,long){
+  const order=[],map=new Map();
+  ['OD','OE'].forEach(e=>lists[e].forEach(p=>{const k=p.toLowerCase();if(!map.has(k)){map.set(k,{p,eyes:[]});order.push(k);}map.get(k).eyes.push(e);}));
+  return order.map(k=>{const x=map.get(k);const e=x.eyes.length===2?'AO':x.eyes[0];return cap(x.p)+' '+EYE_LONG[e];});
+}
+function lensLines(kind){return group({OD:lensPhr(S.eyes.OD,kind),OE:lensPhr(S.eyes.OE,kind)},kind==='c');}
+function abnormal(eye){
+  let n=0;SECTIONS.forEach(s=>n+=eyeItems(eye,s,'t').length);
+  n+=eye.lsub.length+(eye.lens==='afac'?1:0);if(eye.outro.lens.trim())n++;
+  if(eye.ot.trim())n++;
+  return n;
+}
+function block(title,lines){const one=l=>{let x=l.replace(/^./,c=>c.toLowerCase());const t=title.toLowerCase()+' ';if(x.startsWith(t))x=x.slice(t.length);return x;};
+  return lines.length===1?[title+': '+one(lines[0])+'.']:[title+':',...lines.map(l=>'- '+l+'.')];}
+function report(){
+  const L=['ULTRASSONOGRAFIA OCULAR',''];
+  if(S.pac.trim())L.push('Paciente: '+S.pac.trim());
+  if(S.ind.trim())L.push('Indicação: '+cap(S.ind.trim().replace(/\.$/,''))+'.');
+  if(S.pac.trim()||S.ind.trim())L.push('');
+  const a=num(S.alOD),b=num(S.alOE);
+  const mm=[a!==null?'olho direito '+fmt(a)+' mm':'',b!==null?'olho esquerdo '+fmt(b)+' mm':''].filter(Boolean).join('; ');
+  if(S.ca||mm){L.push('Comprimento axial comparativo: '+(S.ca?CA[S.ca]:'')+(mm?(S.ca?' ('+mm+')':mm):'')+'.');L.push('');}
+  L.push(...block('Cristalinos',lensLines('t')));
+  SECTIONS.forEach(s=>{L.push('');L.push(...block(s.name,group({OD:eyeLines(S.eyes.OD,s,'t'),OE:eyeLines(S.eyes.OE,s,'t')})));});
+  {const od=S.eyes.OD.ot.trim(),oe=S.eyes.OE.ot.trim();
+   if(od||oe){L.push('','Outros achados:');
+     if(od&&oe&&od.toLowerCase()===oe.toLowerCase())L.push('Ambos os olhos: '+od);
+     else{if(od)L.push('Olho direito: '+od);if(oe)L.push('Olho esquerdo: '+oe);}}}
+  L.push('','CONCLUSÃO');
+  if(S.ca)L.push('- Comprimento axial '+(S.ca==='sim'?'simétrico':'assimétrico')+'.');
+  lensLines('c').forEach(l=>L.push('- '+l+'.'));
+  SECTIONS.forEach(s=>group({OD:eyeLines(S.eyes.OD,s,'c'),OE:eyeLines(S.eyes.OE,s,'c')},true).forEach(l=>L.push('- '+l+'.')));
+  if(S.obs.trim())L.push('','OBSERVAÇÕES',S.obs.trim());
+  if(ASS.trim())L.push('','','_______________________________',ASS.trim());
+  return L.join('\n');
+}
+
+/* ---------- render ---------- */
+function pill(n,lim){if(lim)return '<span class="pill lim">limitada</span>';return `<span class="pill${n?' abn':''}">${n?n+(n>1?' achados':' achado'):'normal'}</span>`;}
+function gopts(f,val){return f.g.map((o,i)=>`<option value="${i}"${+val===i?' selected':''}>${esc(o||'sem localização')}</option>`).join('');}
+/* Esquema do fundo de olho (visão do examinador): OD temporal à esquerda e disco à direita; OE invertido */
+function fundusDial(sec,f,cur){
+  const od=S.eye==='OD',r=50,opts=f.qo||QUADS;
+  const pt=a=>[(r*Math.cos(a*Math.PI/180)).toFixed(1),(r*Math.sin(a*Math.PI/180)).toFixed(1)];
+  const wedge=(a1,a2)=>{const [x1,y1]=pt(a1),[x2,y2]=pt(a2);return `M0 0 L${x1} ${y1} A${r} ${r} 0 0 1 ${x2} ${y2}Z`;};
+  const W={superior:[-135,-45],inferior:[45,135],temporal:od?[135,225]:[-45,45],nasal:od?[-45,45]:[135,225]};
+  const on=k=>cur.includes(k);
+  const fillOn='fill:var(--accent);fill-opacity:.45',fillOff='fill:var(--surface)';
+  let g='';
+  QUADS.forEach(k=>{if(!opts.includes(k))return;const [a1,a2]=W[k];
+    g+=`<path d="${wedge(a1,a2)}" style="${on(k)?fillOn:fillOff};stroke:var(--line);stroke-width:1" data-s="${sec.id}" data-qf="${f.id}" data-q="${k}" role="button" aria-label="${k}"><title>${k}</title></path>`;});
+  g+=`<circle r="${r}" style="fill:none;stroke:var(--muted);stroke-width:1.2"/>`;
+  const dx=od?22:-22;
+  const mac=opts.includes('macular'),pap=opts.includes('peripapilar');
+  g+=`<circle cx="${dx}" cy="0" r="${pap?9:7}" style="${pap&&on('peripapilar')?fillOn:pap?'fill:var(--surface)':'fill:var(--surface)'};stroke:var(--muted);stroke-width:1"${pap?` data-s="${sec.id}" data-qf="${f.id}" data-q="peripapilar" role="button" aria-label="peripapilar"`:''}>${pap?'<title>peripapilar</title>':''}</circle>`;
+  g+=`<circle cx="${dx}" cy="0" r="4" style="fill:var(--muted);pointer-events:none"/>`;
+  g+=`<circle r="${mac?9:4}" style="${mac&&on('macular')?fillOn:mac?'fill:var(--surface)':'fill:none'};stroke:var(--muted);stroke-width:1${mac?'':';stroke-dasharray:2 2'}"${mac?` data-s="${sec.id}" data-qf="${f.id}" data-q="macular" role="button" aria-label="macular"`:''}>${mac?'<title>macular</title>':''}</circle>`;
+  g+=`<circle r="1.6" style="fill:var(--muted);pointer-events:none"/>`;
+  const T=(x,y,t)=>`<text x="${x}" y="${y}" style="font:600 10px var(--f-label);fill:var(--muted)" text-anchor="middle" dominant-baseline="central" pointer-events="none">${t}</text>`;
+  g+=T(0,-58,'S')+T(0,58,'I')+T(od?-58:58,0,'T')+T(od?58:-58,0,'N');
+  return `<div class="fdial" aria-hidden="true"><svg viewBox="-66 -66 132 132">${g}</svg><div class="cap">${S.eye}</div></div>`;
+}
+function secCard(sec){
+  const eye=S.eyes[S.eye],sel=eye.sel[sec.id];const n=eyeItems(eye,sec,'t').length;
+  const lim=sec.id==='ret'&&limited(eye)&&!n;
+  const chips=sec.f.map(f=>{const on=sel[f.id]!==undefined;
+    return `<span class="chip${on?' on':''}"><button type="button" data-s="${sec.id}" data-f="${f.id}" aria-pressed="${on}">${esc(f.l)}</button>${on&&f.g?`<select aria-label="${esc(f.l)}: opção" data-s="${sec.id}" data-g="${f.id}">${gopts(f,sel[f.id])}</select>`:''}</span>`;}).join('');
+  const subs=sec.f.filter(f=>(f.q||f.sub)&&sel[f.id]!==undefined).map(f=>{
+    const list=f.q?(f.qo||QUADS).map(x=>[x,x]):f.sub;
+    const cur=Array.isArray(sel[f.id])?sel[f.id]:(sel[f.id]=[]);
+    const chipsH=`<div class="chips">${list.map(([k,l])=>{const on=cur.includes(k);return `<span class="chip mini${on?' on':''}"><button type="button" data-s="${sec.id}" data-qf="${f.id}" data-q="${k}" aria-pressed="${on}">${esc(cap(l))}</button></span>`;}).join('')}</div>`;
+    return `<div class="qrow"><span class="label">${esc(f.l)}: ${f.q?'localização':'subtipo (opcional)'}</span>${f.q?`<div class="qbody">${fundusDial(sec,f,cur)}${chipsH}</div>`:chipsH}</div>`;}).join('');
+  return `<section class="sec" id="sec-${sec.id}"><div class="sec-h"><h2>${esc(sec.name)}</h2>${pill(n,lim)}</div>
+  <div class="chips">${chips}</div>${subs}
+  <input class="outro" data-o="${sec.id}" type="text" placeholder="Outro achado (texto livre)" value="${esc(eye.outro[sec.id])}"></section>`;
+}
+function lensCard(){
+  const eye=S.eyes[S.eye];const M=LENS[eye.lens]||LENS.fac;const n=eye.lsub.length;
+  const main=Object.keys(LENS).map(k=>`<span class="chip${k===eye.lens?' on':''}"><button type="button" data-lens="${k}" aria-pressed="${k===eye.lens}">${esc(LENS[k].l)}</button></span>`).join('');
+  const subs=`<div class="qrow"><span class="label">${esc(M.l)}: alterações (opcional)</span><div class="chips">${M.subs.map(([k,l])=>{const on=eye.lsub.includes(k);return `<span class="chip mini${on?' on':''}"><button type="button" data-lsub="${k}" aria-pressed="${on}">${esc(l)}</button></span>`;}).join('')}</div></div>`;
+  return `<section class="sec" id="sec-lens"><div class="sec-h"><h2>Cristalino</h2><span class="pill${n||eye.lens==='afac'?' abn':''}">${esc(M.l)}${n?' +'+n:''}</span></div>
+   <div class="chips">${main}</div>${subs}
+   <input class="outro" data-o="lens" type="text" placeholder="Outro achado (texto livre)" value="${esc(eye.outro.lens)}"></section>`;
+}
+function othersCard(){
+  const eye=S.eyes[S.eye];const n=eye.ot.trim()?1:0;
+  return `<section class="sec" id="sec-ot"><div class="sec-h"><h2>Outros achados</h2>${pill(n,false)}</div>
+   <textarea class="outro" data-ot="1" rows="3" placeholder="Texto livre. Em branco, a seção não aparece no laudo." style="resize:vertical">${esc(eye.ot)}</textarea></section>`;
+}
+function renderSections(){$('sections').innerHTML=lensCard()+SECTIONS.map(secCard).join('')+othersCard();}
+function refreshPills(){
+  const eye=S.eyes[S.eye];
+  SECTIONS.forEach(sec=>{const el=document.querySelector('#sec-'+sec.id+' .pill');const n=eyeItems(eye,sec,'t').length;const t=document.createElement('div');t.innerHTML=pill(n,sec.id==='ret'&&limited(eye)&&!n);el.replaceWith(t.firstElementChild);});
+  const el=document.querySelector('#sec-ot .pill');const t=document.createElement('div');t.innerHTML=pill(eye.ot.trim()?1:0,false);el.replaceWith(t.firstElementChild);
+}
+/* Converte as linhas do laudo em HTML com estilo inline (preservado ao colar no Word/sistema) */
+const P='font-family:Arial,Helvetica,sans-serif;font-size:12pt;text-align:justify;margin:0;-webkit-text-size-adjust:100%;text-size-adjust:100%;';
+function reportHTML(){
+  const lines=report().split('\n');let sig=false;
+  return lines.map((l,i)=>{
+    if(l==='')return `<p style="${P}">&nbsp;</p>`;
+    if(i===0)return `<p class="rt" style="${P}text-align:center;font-weight:bold">${esc(l)}</p>`;
+    if(/^_{5,}$/.test(l)){sig=true;return `<p class="sig" style="${P}text-align:center">${esc(l)}</p>`;}
+    if(sig)return `<p class="sig" style="${P}text-align:center">${esc(l)}</p>`;
+    if(/^[A-ZÇÃÕÉÊÍÓÚ ]+$/.test(l))return `<p style="${P}"><b>${esc(l)}</b></p>`;
+    const m=!l.startsWith('- ')&&l.match(/^([^:]{2,60}):(\s|$)/);
+    if(m)return `<p style="${P}"><b>${esc(m[1])}:</b>${esc(l.slice(m[0].length-m[2].length))}</p>`;
+    return `<p style="${P}">${esc(l)}</p>`;
+  }).join('');
+}
+function update(){
+  $('out').innerHTML=reportHTML();
+  ['OD','OE'].forEach(e=>{$('c'+e).textContent=abnormal(S.eyes[e]);});
+  $('mstat').textContent='OD '+abnormal(S.eyes.OD)+' · OE '+abnormal(S.eyes.OE);
+  save();
+}
+function setEye(e){S.eye=e;$('app').dataset.eye=e;document.querySelector('.mbar').dataset.eye=e;
+  document.querySelectorAll('#eyeseg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.e===e));
+  $('copyEye').textContent='Copiar para '+other(e);renderSections();update();}
+
+/* ---------- eventos ---------- */
+const secs=$('sections');
+secs.addEventListener('click',ev=>{
+  const b=ev.target.closest('button,[data-qf]');if(!b)return;const eye=S.eyes[S.eye];
+  if(b.dataset.lsub){const k=b.dataset.lsub,a=eye.lsub,i=a.indexOf(k);if(i>=0)a.splice(i,1);else{a.push(k);const x=LENS_EXCL[k];if(x&&a.includes(x))a.splice(a.indexOf(x),1);}
+    renderSections();update();const nb=document.querySelector(`button[data-lsub="${k}"]`);if(nb)nb.focus();return;}
+  if(b.dataset.lens){if(eye.lens!==b.dataset.lens)eye.lsub=[];eye.lens=b.dataset.lens;renderSections();update();const nb=document.querySelector(`button[data-lens="${b.dataset.lens}"]`);if(nb)nb.focus();return;}
+  if(b.dataset.qf){const ss=eye.sel[b.dataset.s];if(!Array.isArray(ss[b.dataset.qf]))ss[b.dataset.qf]=[];const arr=ss[b.dataset.qf];const i=arr.indexOf(b.dataset.q);if(i>=0)arr.splice(i,1);else arr.push(b.dataset.q);
+    renderSections();update();const nb=document.querySelector(`button[data-qf="${b.dataset.qf}"][data-q="${b.dataset.q}"]`);if(nb)nb.focus();return;}
+  if(b.dataset.f){
+    const s=b.dataset.s,id=b.dataset.f,sel=eye.sel[s];
+    const fd=SECTIONS.find(x=>x.id===s).f.find(x=>x.id===id);
+    if(sel[id]!==undefined)delete sel[id];else{
+      sel[id]=(fd.q||fd.sub)?[]:0;
+      const EXCL={dvpp:['dvpt','anec'],dvpt:['dvpp','anec'],drp:['drt'],drt:['drp'],deg:['anec'],punc:['anec'],tamp:['anec'],anec:['deg','dvpp','dvpt','punc','tamp']};
+      (EXCL[id]||[]).forEach(x=>{if(id==='anec'&&x==='tamp'&&+sel.tamp===2)return;delete sel[x];});
+    }
+    renderSections();update();
+    const nb=document.querySelector(`#sec-${s} button[data-f="${id}"]`);if(nb)nb.focus();
+  }
+});
+secs.addEventListener('change',ev=>{const t=ev.target;if(t.dataset.g){const sel=S.eyes[S.eye].sel[t.dataset.s];sel[t.dataset.g]=+t.value;
+  if(t.dataset.g==='tamp'&&+t.value<2&&sel.anec!==undefined){delete sel.anec;renderSections();}else refreshPills();update();}});
+secs.addEventListener('input',ev=>{const t=ev.target,eye=S.eyes[S.eye];
+  if(t.dataset.o!==undefined){eye.outro[t.dataset.o]=t.value;if(t.dataset.o!=='lens')refreshPills();update();}
+  else if(t.dataset.ot){eye.ot=t.value;refreshPills();update();}
+});
+
+document.querySelectorAll('#eyeseg button').forEach(b=>b.addEventListener('click',()=>setEye(b.dataset.e)));
+$('copyEye').addEventListener('click',()=>{const o=other(S.eye);S.eyes[o]=JSON.parse(JSON.stringify(S.eyes[S.eye]));update();toast('Achados de '+S.eye+' copiados para '+o);});
+$('normEye').addEventListener('click',()=>{S.eyes[S.eye]=blankEye();renderSections();update();toast(S.eye+' marcado como normal');});
+let armed=null;
+$('resetAll').addEventListener('click',ev=>{const b=ev.currentTarget;
+  if(!armed){b.textContent='Confirmar novo laudo';b.classList.add('warn');armed=setTimeout(()=>{armed=null;b.textContent='Novo laudo';b.classList.remove('warn');},3500);return;}
+  clearTimeout(armed);armed=null;b.textContent='Novo laudo';b.classList.remove('warn');
+  S=blank();bindTech();setEye('OD');toast('Novo laudo iniciado');});
+
+const TECH=[['pac','pac','value'],['ind','ind','value'],['ca','ca','value'],['alOD','alOD','value'],['alOE','alOE','value'],['obs','obs','value']];
+function bindTech(){TECH.forEach(([id,k,p])=>{$(id)[p]=S[k];});$('ass').value=ASS;}
+TECH.forEach(([id,k,p])=>{const el=$(id);el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{S[k]=el[p];update();});});
+$('ass').addEventListener('input',e=>{ASS=e.target.value;try{localStorage.setItem(KEYS,ASS);}catch(x){}update();});
+
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,1800);}
+/* Copia com formatação (HTML) e texto simples; se o navegador bloquear, tenta a cópia da seleção e, por fim, só seleciona */
+function copy(){
+  const txt=report(),html=`<html><head><meta charset="utf-8"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%}body,p,b{font-family:Arial,Helvetica,sans-serif;font-size:12pt}</style></head><body style="${P}">${reportHTML()}</body></html>`;
+  const selectOut=()=>{const r=document.createRange();r.selectNodeContents($('out'));const s=getSelection();s.removeAllRanges();s.addRange(r);return s;};
+  const legacy=()=>{const s=selectOut();let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    if(ok){s.removeAllRanges();toast('Laudo copiado');}else toast('Texto selecionado, use Copiar do sistema');};
+  try{
+    if(navigator.clipboard&&window.ClipboardItem){
+      const item=new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([txt],{type:'text/plain'})});
+      navigator.clipboard.write([item]).then(()=>toast('Laudo copiado'),legacy);return;
+    }
+  }catch(e){}
+  legacy();
+}
+$('copyTop').addEventListener('click',copy);$('copyBot').addEventListener('click',copy);
+/* Texto sem formatação: o app de destino aplica a própria fonte (útil se o Pages alterar o tamanho) */
+$('copyPlain').addEventListener('click',()=>{const txt=report();
+  const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,txt.length);let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();toast(ok?'Texto simples copiado':'Não foi possível copiar');};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>toast('Texto simples copiado'),fb);else fb();});
+$('seeBot').addEventListener('click',()=>document.querySelector('.preview').scrollIntoView({behavior:'smooth',block:'start'}));
+$('printBtn').addEventListener('click',()=>window.print());
+
+bindTech();setEye(S.eye||'OD');
+</script>
+</body>
+</html>
