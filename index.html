@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Modelos de Laudo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Página inicial: lista dos modelos de laudo. Mesmo sistema visual dos laudos. */
+:root{
+  --bg:#F2F4F5; --surface:#FFFFFF; --ink:#15202A; --muted:#5A6773; --line:#D8DEE3;
+  --accent:#B0461F; --accent-soft:#F6E3DA;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-label:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1317; --surface:#161E25; --ink:#E3E9ED; --muted:#93A0AB; --line:#2A3540;
+  --accent:#E5835A; --accent-soft:#3A241B; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1317; --surface:#161E25; --ink:#E3E9ED; --muted:#93A0AB; --line:#2A3540;
+  --accent:#E5835A; --accent-soft:#3A241B; color-scheme:dark }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.45;
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:720px;margin:0 auto;padding-block:32px 24px}
+h1{font-family:var(--f-label);font-weight:600;font-size:1.7rem;margin:0 0 6px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 24px;font-size:.95rem}
+.label{font-family:var(--f-label);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.list{list-style:none;margin:0 0 28px;padding:0;display:flex;flex-direction:column;gap:10px}
+a.card{display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none}
+a.card:hover{border-color:var(--accent)}
+a.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ico{flex:none;width:42px;height:42px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.ico svg{width:24px;height:24px}
+.txt{flex:1;min-width:0}
+.txt b{display:block;font-weight:600;font-size:1.02rem}
+.txt span{display:block;color:var(--muted);font-size:.88rem}
+.go{flex:none;color:var(--muted);font-size:1.3rem}
+.soon{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}
+.soon .ico{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.soon b{font-weight:500;color:var(--muted)}
+.tag{font-family:var(--f-label);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--line);border-radius:20px;padding:2px 8px}
+.note{color:var(--muted);font-size:.85rem;margin:0 0 28px}
+footer{text-align:center;font-family:var(--f-label);font-size:.78rem;letter-spacing:.06em;color:var(--muted);padding-bottom:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Modelos de Laudo</h1>
+  <p class="sub">Modelos estruturados de laudos oftalmológicos. Marque os achados e copie o texto pronto.</p>
+
+  <p class="label">Disponíveis</p>
+  <ul class="list">
+    <li><a class="card" href="Laudo-Mapeamento-Retina.html">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="15.5" cy="12" r="2"/><path d="M14 10.5c-3-2-6-2-8 0M14 13.5c-3 2-6 2-8 0"/></svg></span>
+      <span class="txt"><b>Mapeamento de Retina</b><span>Fundoscopia por estrutura, periferia em horas de relógio e classificações</span></span>
+      <span class="go" aria-hidden="true">›</span></a></li>
+    <li><a class="card" href="Laudo-Ultrassom-Ocular.html">
+      <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12a8 8 0 0 1 16 0"/><path d="M7 12a5 5 0 0 1 10 0"/><path d="M10 12a2 2 0 0 1 4 0"/><path d="M12 12v8"/></svg></span>
+      <span class="txt"><b>Ultrassonografia Ocular</b><span>Modo B descritivo: cristalino, cavidade vítrea, retina e coroide</span></span>
+      <span class="go" aria-hidden="true">›</span></a></li>
+  </ul>
+
+  <p class="label">Em preparação</p>
+  <ul class="list">
+    <li class="soon"><span class="ico" aria-hidden="true">+</span><span class="txt"><b>Retinografia e autofluorescência</b></span><span class="tag">Em breve</span></li>
+    <li class="soon"><span class="ico" aria-hidden="true">+</span><span class="txt"><b>Angiografia fluoresceínica</b></span><span class="tag">Em breve</span></li>
+  </ul>
+
+  <p class="note">Os dados preenchidos ficam salvos apenas no navegador de quem usa. Nada é enviado ou armazenado em servidor.</p>
+  <footer>Desenvolvido por RJFR</footer>
+</div>
+</body>
+</html>
