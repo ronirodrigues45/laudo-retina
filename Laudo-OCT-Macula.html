@@ -385,7 +385,7 @@ function fovCard(){
     <div class="field"><span class="label">Depressão foveal</span><div class="chips">${FOV.map(([k,l])=>`<span class="chip${eye.fov===k?' on':''}"><button type="button" data-fov="${k}" aria-pressed="${eye.fov===k}">${esc(l)}</button></span>`).join('')}</div></div>
     <div class="field"><label class="label" for="cst">Espessura central</label><div class="qline"><input class="numin" id="cst" type="text" inputmode="numeric" value="${esc(eye.cst)}" placeholder="ex.: 261"><span class="unit">µm</span></div></div>
    </div>
-   <p class="hint">Nidek RS-3000: setor central (1 mm) do ETDRS 9 Sector, página MACULA MAP X-Y (ILM–RPE/BM). A cor do banco normativo só entra no laudo se houver correlação no B-scan.</p></section>`;
+   <p class="hint">Use o setor central (1 mm) do mapa ETDRS. A cor do banco normativo só entra no laudo se houver correlação no B-scan.</p></section>`;
 }
 function imgCard(){
   const L=IMGS[S.eye];
