@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Laudo de OCT de Mácula</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Mesmo sistema visual dos laudos de Mapeamento e Ultrassom: formulário por olho | laudo ao vivo. OD = tom quente, OE = azul. */
+:root{
+  --bg:#F2F4F5; --surface:#FFFFFF; --ink:#15202A; --muted:#5A6773; --line:#D8DEE3;
+  --od:#B0461F; --od-soft:#F6E3DA; --oe:#21608C; --oe-soft:#DCE8F1;
+  --warn:#C0262D;
+  --accent:var(--od); --accent-soft:var(--od-soft);
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-label:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1317; --surface:#161E25; --ink:#E3E9ED; --muted:#93A0AB; --line:#2A3540;
+  --od:#E5835A; --od-soft:#3A241B; --oe:#74AEDB; --oe-soft:#182B3A; --warn:#F0676C; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1317; --surface:#161E25; --ink:#E3E9ED; --muted:#93A0AB; --line:#2A3540;
+  --od:#E5835A; --od-soft:#3A241B; --oe:#74AEDB; --oe-soft:#182B3A; --warn:#F0676C; color-scheme:dark }
+[data-eye="OE"]{ --accent:var(--oe); --accent-soft:var(--oe-soft) }
+
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:env(safe-area-inset-top,0px);padding-bottom:96px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.wrap{max-width:1180px;margin:0 auto}
+header.top{padding-block:20px 8px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:.85rem;margin:0}
+.back{color:var(--muted);font-size:.85rem;text-decoration:none}
+.back:hover{color:var(--accent)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.label{font-family:var(--f-label);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+.tech{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.grow{flex:1 1 220px}
+.field input[type=text],.field textarea,select,.numin{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+.numin{width:110px;font-family:var(--f-mono)}
+.field textarea{resize:vertical;min-height:58px;width:100%}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+.unit{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+
+.eyebar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);margin-bottom:14px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:8px 16px;font-family:var(--f-label);font-weight:600;font-size:.95rem;letter-spacing:.04em;cursor:pointer;display:flex;gap:8px;align-items:center}
+.seg button[aria-pressed="true"][data-e="OD"]{background:var(--od);color:#fff}
+.seg button[aria-pressed="true"][data-e="OE"]{background:var(--oe);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"][data-e]{color:#0E1317}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"][data-e]{color:#0E1317}}
+.count{font-family:var(--f-mono);font-size:.75rem;font-weight:500;min-width:20px;padding:0 5px;border-radius:9px;border:1px solid currentColor;opacity:.85;font-variant-numeric:tabular-nums}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:7px 11px;font-size:.85rem;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.warn{color:var(--warn);border-color:var(--warn)}
+
+.sections{display:flex;flex-direction:column;gap:12px}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.sec-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sec-h h2{font-family:var(--f-label);font-weight:600;font-size:1rem;margin:0;letter-spacing:.02em}
+.pill{font-family:var(--f-label);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+.pill.abn{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:18px;background:var(--bg);max-width:100%}
+.chip button{border:0;background:none;padding:5px 11px;font-size:.85rem;cursor:pointer;text-align:left}
+.chip.on{border-color:var(--accent);background:var(--accent-soft)}
+.chip.on button{color:var(--accent);font-weight:500}
+.chip.mini{background:var(--surface)}
+.chip.mini button{padding:4px 10px;font-size:.82rem}
+.outro{width:100%;background:var(--bg);border:1px dashed var(--line);border-radius:6px;padding:7px 9px;font-size:.88rem}
+.outro:focus{border-style:solid}
+.qrow{display:flex;flex-direction:column;gap:8px;padding:8px 10px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0}
+.qline{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.qline select{max-width:100%}
+.fovrow{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-start}
+
+/* Imagens do exame */
+.drop{display:flex;flex-direction:column;gap:10px}
+.dz{border:1.5px dashed var(--line);border-radius:8px;padding:14px;text-align:center;color:var(--muted);font-size:.88rem;cursor:pointer;background:var(--bg)}
+.dz.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.th{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#000;aspect-ratio:4/3}
+.th img{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-in}
+.th .x{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;line-height:1;font-size:15px}
+.lb{position:fixed;inset:0;z-index:30;background:rgba(5,8,10,.94);display:flex;flex-direction:column}
+.lb-h{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px;color:#E3E9ED}
+.lb-h .btn{background:#161E25;border-color:#2A3540;color:#E3E9ED}
+.lb-b{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;touch-action:pinch-zoom pan-x pan-y}
+.lb-b img{max-width:100%;max-height:100%;cursor:zoom-in}
+.lb-b.full{align-items:flex-start;justify-content:flex-start}
+.lb-b.full img{max-width:none;max-height:none;cursor:zoom-out}
+
+.preview{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:calc(100vh - 24px)}
+@media (max-width:900px){.preview{position:static;max-height:none}}
+.prev-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);gap:8px;flex-wrap:wrap}
+.copy{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 14px;font-weight:600;cursor:pointer}
+:root[data-theme="dark"] .copy{color:#0E1317}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .copy{color:#0E1317}}
+/* Laudo como folha: sempre fundo branco, Arial 12 justificado */
+#out{margin:0;padding:18px 18px 22px;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;text-align:justify;hyphens:none;overflow:auto;flex:1;min-width:0;overflow-wrap:break-word}
+#out p{margin:0}
+.foot{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.check{display:flex;gap:6px;align-items:center;font-size:.9rem;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+
+.mbar{display:none}
+@media (max-width:900px){.mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:6;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}}
+@media (pointer:coarse){input,select,textarea,.outro,.numin,.field input,.field textarea{font-size:16px!important}}
+.mbar .actions{flex-wrap:nowrap}
+.mbar .label{white-space:nowrap}
+.credit{max-width:1180px;margin:28px auto 8px;text-align:center;font-family:var(--f-label);font-size:.78rem;letter-spacing:.06em;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:.88rem;z-index:40}
+@media (prefers-reduced-motion:no-preference){.chip,.btn{transition:border-color .15s,background .15s}}
+
+#printImgs{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  .wrap > header, main, .prev-h, .foot, .mbar, .toast, .credit, .lb{display:none!important}
+  .grid{display:block}
+  .preview{border:0;position:static;max-height:none}
+  #out{padding:0;overflow:visible}
+  #printImgs.on{display:block;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;break-before:page}
+  #printImgs h3{font-size:12pt;margin:0 0 8px}
+  #printImgs img{display:block;max-width:100%;max-height:11cm;margin:0 auto 10px;break-inside:avoid}
+  @page{margin:2cm}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app" data-eye="OD">
+  <header class="top">
+    <h1>Laudo de OCT de Mácula</h1>
+    <p class="sub">Sem seleção, a estrutura sai normal. Achado igual nos dois olhos sai como "bilateral" na conclusão. <a class="back" href="index.html">‹ Modelos</a></p>
+  </header>
+
+  <div class="grid">
+    <main>
+      <section class="tech" aria-label="Dados do exame">
+        <div class="field"><label class="label" for="pac">Paciente</label><input type="text" id="pac" placeholder="Nome do paciente" autocomplete="off"></div>
+      </section>
+
+      <div class="eyebar">
+        <div class="seg" role="group" aria-label="Olho em edição" id="eyeseg">
+          <button type="button" data-e="OD" aria-pressed="true">OD <span class="count" id="cOD">0</span></button>
+          <button type="button" data-e="OE" aria-pressed="false">OE <span class="count" id="cOE">0</span></button>
+        </div>
+        <div class="actions">
+          <button class="btn" id="copyEye">Copiar para OE</button>
+          <button class="btn" id="normEye">Olho normal</button>
+          <button class="btn" id="resetAll">Novo laudo</button>
+        </div>
+      </div>
+
+      <div class="sections" id="sections"></div>
+    </main>
+
+    <aside class="preview" aria-label="Laudo gerado">
+      <div class="prev-h"><span class="label">Laudo</span>
+        <div class="actions"><button class="btn" id="printBtn">Imprimir</button><button class="btn" id="copyPlain">Copiar texto simples</button><button class="copy" id="copyTop">Copiar laudo</button></div></div>
+      <div id="out" tabindex="0" lang="pt-BR"></div>
+      <div class="foot">
+        <div class="field"><label class="label" for="cterm">Início da conclusão automática</label><select id="cterm"><option value="compatível com">Exame compatível com…</option><option value="sugestivo de">Exame sugestivo de…</option></select></div>
+        <div class="field"><label class="label" for="concl">Conclusão personalizada (opcional)</label>
+          <textarea id="concl" placeholder="Em branco, usa a conclusão automática."></textarea>
+          <div class="actions"><button class="btn" id="conclBase">Editar a partir da automática</button><button class="btn" id="conclClear">Voltar para automática</button></div></div>
+        <label class="check"><input type="checkbox" id="printImg"> Incluir as imagens na impressão</label>
+        <div class="field"><label class="label" for="enc">Texto de encerramento (fica salvo neste navegador)</label><textarea id="enc" rows="3"></textarea></div>
+        <div class="field"><label class="label" for="ass">Assinatura, uma linha por item (fica salva neste navegador)</label><textarea id="ass" rows="3" placeholder="NOME SOBRENOME&#10;CRMBA 00000 / RQE 00000&#10;OFTALMOLOGISTA"></textarea></div>
+      </div>
+      <div id="printImgs"></div>
+    </aside>
+  </div>
+</div>
+
+<footer class="credit">Desenvolvido por RJFR</footer>
+
+<div class="mbar"><span class="label" id="mstat">OD · OE</span><div class="actions"><button class="btn" id="seeBot">Ver laudo</button><button class="copy" id="copyBot">Copiar laudo</button></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<div class="lb" id="lb" hidden role="dialog" aria-label="Imagem ampliada">
+  <div class="lb-h"><span class="label" id="lbCap" style="color:#93A0AB"></span>
+    <div class="actions"><button class="btn" id="lbPrev">‹</button><button class="btn" id="lbNext">›</button><button class="btn" id="lbZoom">Tamanho real</button><button class="btn" id="lbClose">Fechar</button></div></div>
+  <div class="lb-b" id="lbB"><img id="lbImg" alt=""></div>
+</div>
+
+<script>
+/* Cada achado:
+   t = frase da descrição, c = frase da conclusão (null = não entra na conclusão)
+   g = opções de um seletor [rótulo, inserção em t, inserção em c] ({g} marca o ponto; sem {g}, entra no fim)
+   s = complementos opcionais [chave, rótulo, texto em t, texto em c], unidos por sp (descrição) e scp (conclusão)
+   n = campo numérico em µm, com texto da descrição e função da conclusão */
+const IVR='Interface vítreo-retiniana: ';
+const SECTIONS = [
+ {id:'ivr', name:'Interface vítreo-retiniana', normal:'Interface vítreo-retiniana: Sem alterações', f:[
+  {id:'dvp', l:'DVP parcial perifoveal', pre:IVR, t:'descolamento parcial do vítreo posterior perifoveal, sem tração sobre a superfície retiniana', c:null},
+  {id:'vma', l:'Adesão vitreomacular', pre:IVR, t:'adesão vitreomacular, sem alteração do contorno foveal', c:null},
+  {id:'vmt', l:'Tração vitreomacular', pre:IVR, t:'adesão vítrea persistente na região macular, com tração sobre a superfície retiniana e alteração do contorno foveal{g}', c:'tração vitreomacular{g}',
+   g:[['Extensão não especificada','',''],['Focal (≤ 1500 µm)',', de configuração focal (extensão da adesão ≤ 1500 µm)',' focal'],['Ampla (> 1500 µm)',', de configuração ampla (extensão da adesão > 1500 µm)',' ampla']]},
+  {id:'mer', l:'Membrana epirretiniana', t:'hiperrefletividade linear pré-retiniana compatível com membrana epirretiniana', c:'membrana epirretiniana',
+   s:[['preg','Pregueamento','pregueamento da superfície retiniana',''],['dist','Distorção do contorno foveal','distorção do contorno foveal',''],['eifl','EIFL','camadas internas foveais ectópicas (EIFL)','camadas internas foveais ectópicas']], sp:', com ', scp:' com '},
+  {id:'phm', l:'Pseudoburaco macular', t:'membrana epirretiniana com bordas foveais verticalizadas e configuração em "U", sem perda de tecido retiniano, compatível com pseudoburaco macular', c:'pseudoburaco macular'},
+  {id:'lmh', l:'Buraco macular lamelar', t:'defeito parcial e irregular da retina interna foveal, com bordas solapadas e retina externa preservada, compatível com buraco macular lamelar', c:'buraco macular lamelar',
+   s:[['lhep','Proliferação epirretiniana (LHEP)','proliferação epirretiniana associada (LHEP)','']], sp:', com ', scp:''},
+  {id:'bm', l:'Buraco macular de espessura total', t:'defeito de espessura total da retina neurossensorial foveal, compatível com buraco macular de espessura total', c:'buraco macular de espessura total',
+   n:{l:'Diâmetro mínimo', t:', com diâmetro mínimo de {n} µm', c:n=>n<=250?' de tamanho pequeno':n<=400?' de tamanho médio':' de tamanho grande'},
+   s:[['cis','Bordas císticas','espaços cistoides nas bordas',''],['vmt','Tração vitreomacular','tração vitreomacular associada','tração vitreomacular'],['oper','Opérculo','opérculo sobre o buraco','']], sp:', com ', scp:' com '}
+ ]},
+ {id:'int', name:'Camadas internas da retina', normal:'Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado', f:[
+  {id:'ed', l:'Cistos / edema macular', t:'presença de cistos intrarretinianos compatíveis com edema macular', c:'edema macular{g}',
+   g:[['Sem etiologia na conclusão','',''],['Diabético','',' diabético'],['Por oclusão venosa','',' secundário a oclusão venosa retiniana'],['Pós-operatório','',' cistoide pós-operatório'],['Uveítico','',' uveítico']]},
+  {id:'hrf', l:'Pontos hiperrefletivos', t:'presença de pontos hiperrefletivos{g}', c:null,
+   g:[['Sem interpretação','',''],['Exsudatos/hemorragias',' que podem corresponder a exsudatos/hemorragias',''],['Exsudatos duros',' compatíveis com exsudatos duros','']]},
+  {id:'dril', l:'DRIL', t:'desorganização das camadas internas da retina (DRIL)', c:null},
+  {id:'afin', l:'Afinamento', t:'afinamento das camadas internas da retina', c:'afinamento da retina interna'},
+  {id:'isq', l:'Isquemia interna', t:'hiperrefletividade e espessamento das camadas internas da retina, sugestivos de isquemia retiniana interna', c:'isquemia retiniana interna'},
+  {id:'pamm', l:'PAMM', t:'faixa hiperrefletiva na camada nuclear interna, sugestiva de maculopatia média aguda paracentral (PAMM)', c:'maculopatia média aguda paracentral (PAMM)'},
+  {id:'sq', l:'Retinosquise', t:'separação entre as camadas da retina neurossensorial, compatível com retinosquise{g}', c:'retinosquise macular{g}',
+   g:[['Sem especificar','',''],['Foveosquise miópica',', em olho míope',' (foveosquise miópica)']]}
+ ]},
+ {id:'ext', name:'Retina neurossensorial', normal:'Retina neurossensorial sem alterações', f:[
+  {id:'espt', l:'Espessamento por tração', t:'retina neurossensorial com espessamento e deformação do perfil foveal associados à tração vitreomacular', c:null},
+  {id:'esp', l:'Espessamento', t:'retina neurossensorial com espessamento', c:null},
+  {id:'fsr', l:'Fluido sub-retiniano', t:'presença de fluido sub-retiniano', c:'fluido sub-retiniano'},
+  {id:'ze', l:'Interrupção da zona elipsoide', t:'interrupção {g} da zona elipsoide em região macular', c:'interrupção {g} da zona elipsoide',
+   g:[['Focal','focal','focal'],['Difusa','difusa','difusa']]},
+  {id:'mle', l:'Interrupção da MLE', t:'interrupção da membrana limitante externa', c:'interrupção da membrana limitante externa'},
+  {id:'shrm', l:'Material hiperrefletivo sub-retiniano', t:'material hiperrefletivo sub-retiniano', c:'material hiperrefletivo sub-retiniano'},
+  {id:'sdd', l:'Pseudodrusas reticulares', t:'depósitos drusenoides sub-retinianos (pseudodrusas reticulares)', c:'pseudodrusas reticulares'},
+  {id:'vit', l:'Lesão viteliforme', t:'material hiperrefletivo sub-retiniano em região foveal, sugestivo de lesão viteliforme', c:'lesão viteliforme'},
+  {id:'tub', l:'Tubulações', t:'tubulações da retina externa', c:null}
+ ]},
+ {id:'epr', name:'Complexo EPR-coroide', normal:'Complexo EPR-Coroide sem alterações', f:[
+  {id:'dru', l:'Drusas', t:'elevações do epitélio pigmentado da retina compatíveis com drusas', c:'drusas',
+   s:[['hrf','Pontos hiperrefletivos sobrejacentes','pontos hiperrefletivos intrarretinianos sobrejacentes',''],['hipo','Núcleo hiporrefletivo','núcleo hiporrefletivo','']], sp:', com ', scp:''},
+  {id:'deps', l:'DEP seroso', t:'descolamento do epitélio pigmentado da retina de conteúdo hiporrefletivo homogêneo, compatível com descolamento seroso do EPR', c:'descolamento seroso do epitélio pigmentado da retina'},
+  {id:'depfv', l:'DEP fibrovascular', t:'descolamento do epitélio pigmentado da retina de conteúdo heterogêneo e refletividade moderada, sugestivo de descolamento fibrovascular', c:'descolamento fibrovascular do EPR, sugestivo de neovascularização macular tipo 1'},
+  {id:'dupla', l:'Sinal da dupla camada', t:'elevação rasa e irregular do epitélio pigmentado da retina, com sinal da dupla camada', c:'elevação rasa e irregular do EPR (sinal da dupla camada)'},
+  {id:'atr', l:'Atrofia do EPR', t:'perda do epitélio pigmentado da retina com hipertransmissão do sinal para a coroide{g}', c:'atrofia do epitélio pigmentado da retina{g}',
+   g:[['Sem especificar','',''],['cRORA',', associada a degeneração da retina externa, compatível com atrofia completa do EPR e da retina externa (cRORA)',' e da retina externa (cRORA)']]},
+  {id:'paq', l:'Paquicoroide', t:'espessamento da coroide com dilatação dos vasos da camada de Haller', c:'espessamento coroideo, sugestivo do espectro paquicoroide'},
+  {id:'cic', l:'Cicatriz disciforme', t:'lesão hiperrefletiva compacta sub-retiniana, compatível com cicatriz fibrótica', c:'cicatriz disciforme'}
+ ]}
+];
+const FOV = [['presente','Presente'],['retificada','Retificada'],['ausente','Ausente'],['invertida','Invertida (convexa)'],['alterada','Alterada']];
+/* Achados que não coexistem no mesmo olho */
+const EXCL = {dvp:['vma','vmt'],vma:['dvp','vmt'],vmt:['dvp','vma'],phm:['lmh','bm'],lmh:['phm','bm'],bm:['phm','lmh'],deps:['depfv'],depfv:['deps']};
+const SEC_OF = {};SECTIONS.forEach(s=>s.f.forEach(f=>SEC_OF[f.id]=s));
+
+const KEY='oct-macula-v2', KEYA='oct-macula-ass', KEYE='oct-macula-enc';
+const ENC_DEF='Sugiro correlacionar os achados deste exame com os demais dados clínicos do paciente para melhor avaliação e conduta.\nDisponível para demais esclarecimentos.';
+function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});return {sel:s,outro:o,fov:'presente',cst:'',ot:'',lim:false};}
+function blank(){return {pac:'',concl:'',cterm:'compatível com',pimg:false,eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
+/* Normaliza dados salvos: descarta achados inexistentes e corrige formatos */
+function fixEye(e){
+  const b=blankEye();if(!e||typeof e!=='object')return b;
+  SECTIONS.forEach(sec=>{const src=(e.sel&&e.sel[sec.id])||{};
+    sec.f.forEach(f=>{const v=src[f.id];if(!v||typeof v!=='object')return;
+      const g=Number.isInteger(v.g)&&f.g&&v.g>=0&&v.g<f.g.length?v.g:0;
+      const s=Array.isArray(v.s)&&f.s?v.s.filter(k=>f.s.some(x=>x[0]===k)):[];
+      b.sel[sec.id][f.id]={g,s,n:typeof v.n==='string'?v.n:''};});
+    b.outro[sec.id]=e.outro&&typeof e.outro[sec.id]==='string'?e.outro[sec.id]:'';});
+  if(FOV.some(x=>x[0]===e.fov))b.fov=e.fov;
+  if(typeof e.cst==='string')b.cst=e.cst;b.lim=e.lim===true;if(typeof e.ot==='string')b.ot=e.ot;
+  return b;
+}
+const CTERMS=['compatível com','sugestivo de'];
+let S=blank();
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';if(!CTERMS.includes(S.cterm))S.cterm='compatível com';}}}catch(e){S=blank();}
+let ASS='',ENC=ENC_DEF;
+try{ASS=localStorage.getItem(KEYA)||localStorage.getItem('usg-ocular-ass')||localStorage.getItem('mapeamento-retina-ass')||'';const e=localStorage.getItem(KEYE);if(e!==null)ENC=e;}catch(e){}
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}},300);}
+/* Imagens: só na memória da página (não são salvas nem enviadas) */
+const IMGS={OD:[],OE:[]};
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const other=e=>e==='OD'?'OE':'OD';
+const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)&&n>0?n:null;};
+const andJoin=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' e '+a[a.length-1];
+const dot=s=>/[.!?]$/.test(s)?s:s+'.';
+const EYE_NAME={OD:'Olho direito',OE:'Olho esquerdo'};
+const LIM_TXT='Avaliação parcialmente limitada por baixa qualidade de sinal ou artefato de segmentação';
+
+function phrase(f,v,kind){
+  let s=kind==='t'?f.t:f.c;if(s==null)return null;
+  if(f.g){const o=f.g[v.g]||f.g[0];const ins=kind==='t'?o[1]:o[2];s=s.includes('{g}')?s.replace('{g}',ins):s+ins;}
+  if(f.n){const n=num(v.n);if(n!==null)s+=kind==='t'?f.n.t.replace('{n}',Math.round(n)):f.n.c(n);}
+  if(f.s){const a=f.s.filter(x=>v.s.includes(x[0])).map(x=>kind==='t'?x[2]:x[3]).filter(Boolean);
+    if(a.length)s+=(kind==='t'?f.sp:f.scp)+andJoin(a);}
+  return s.replace(/\s{2,}/g,' ').trim();
+}
+function secItems(eye,sec,kind){
+  const sel=eye.sel[sec.id];const out=sec.f.filter(f=>sel[f.id]).map(f=>{const p=phrase(f,sel[f.id],kind);return p&&kind==='t'?(f.pre?f.pre+p:cap(p)):p;}).filter(Boolean);
+  if(kind==='t'){const o=eye.outro[sec.id].trim().replace(/\.$/,'');if(o)out.push(cap(o));}
+  return out;
+}
+function abnormal(eye){let n=0;SECTIONS.forEach(s=>n+=secItems(eye,s,'t').length);if(eye.fov!=='presente')n++;if(eye.ot.trim())n++;if(eye.lim)n++;return n;}
+
+/* Descrição de um olho, no formato dos laudos de referência */
+function eyeBlock(e){
+  const eye=S.eyes[e],L=[],sec=id=>SECTIONS.find(x=>x.id===id);
+  const put=id=>{const x=sec(id),it=secItems(eye,x,'t');(it.length?it:[x.normal]).forEach(t=>L.push('• '+t.replace(/\.$/,'')));};
+  put('ivr');
+  L.push('• Depressão foveal '+eye.fov);
+  const c=num(eye.cst);L.push('• Espessura central: '+(c!==null?Math.round(c):'___')+' µm');
+  put('int');put('ext');put('epr');
+  if(eye.ot.trim())eye.ot.trim().split('\n').map(x=>x.trim().replace(/\.$/,'')).filter(Boolean).forEach(t=>L.push('• '+cap(t)));
+  if(eye.lim)L.push('• '+LIM_TXT);
+  return L;
+}
+/* Conclusão automática: agrupa achados iguais dos dois olhos */
+function autoConcl(){
+  const lists={OD:[],OE:[]};
+  ['OD','OE'].forEach(e=>SECTIONS.forEach(s=>lists[e].push(...secItems(S.eyes[e],s,'c'))));
+  if(!lists.OD.length&&!lists.OE.length)return ['Exame dentro da normalidade'];
+  const order=[],map=new Map();
+  ['OD','OE'].forEach(e=>lists[e].forEach(p=>{const k=p.toLowerCase();if(!map.has(k)){map.set(k,{p,eyes:[]});order.push(k);}if(!map.get(k).eyes.includes(e))map.get(k).eyes.push(e);}));
+  const where={AO:' bilateral',OD:' em olho direito',OE:' em olho esquerdo'};
+  const items=order.map(k=>{const x=map.get(k);return x.p+where[x.eyes.length===2?'AO':x.eyes[0]];});
+  return ['Exame '+S.cterm+' '+andJoin(items)];
+}
+/* Linhas do laudo: {t:texto, b:negrito, bul:item com marcador} */
+function lines(){
+  const L=[{t:'TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA',b:1},{t:''},{t:'PACIENTE : '+S.pac.trim().toUpperCase(),b:1},{t:''}];
+  ['OD','OE'].forEach(e=>{L.push({t:EYE_NAME[e],b:1});eyeBlock(e).forEach(t=>L.push({t,bul:1}));L.push({t:''});});
+  L.push({t:'Conclusão',b:1},{t:''});
+  (S.concl.trim()?S.concl.trim().split('\n'):autoConcl()).forEach(t=>L.push({t,bul:t.startsWith('• ')}));
+  ENC.split('\n').map(x=>x.trim()).filter(Boolean).forEach(t=>L.push({t:''},{t}));
+  const a=ASS.split('\n').map(x=>x.trim()).filter(Boolean);
+  if(a.length){L.push({t:''});a.forEach(t=>L.push({t,b:1,sig:1}));}
+  return L;
+}
+const report=()=>lines().map(x=>x.t).join('\n');
+const P='font-family:Arial,Helvetica,sans-serif;font-size:12pt;text-align:justify;margin:0;-webkit-text-size-adjust:100%;text-size-adjust:100%;';
+function reportHTML(){
+  return lines().map(x=>{
+    if(!x.t)return `<p style="${P}">&nbsp;</p>`;
+    const st=P+(x.bul?'padding-left:0.9em;text-indent:-0.9em;':'')+(x.sig?'text-align:left;':'');
+    if(x.b)return `<p style="${st}text-align:left;"><b>${esc(x.t)}</b></p>`;
+    return `<p style="${st}">${esc(x.t).replace(/^• /,'•&nbsp;')}</p>`;
+  }).join('');
+}
+
+/* ---------- render ---------- */
+function pill(n,txt){return `<span class="pill${n?' abn':''}">${txt||(n?n+(n>1?' achados':' achado'):'normal')}</span>`;}
+function optsRow(sec,f,v){
+  let h='';
+  if(f.g)h+=`<div class="qline"><select data-s="${sec.id}" data-g="${f.id}" aria-label="${esc(f.l)}: opção">${f.g.map((o,i)=>`<option value="${i}"${v.g===i?' selected':''}>${esc(o[0])}</option>`).join('')}</select></div>`;
+  if(f.n)h+=`<div class="qline"><span class="label">${esc(f.n.l)}</span><input class="numin" type="text" inputmode="numeric" data-s="${sec.id}" data-n="${f.id}" value="${esc(v.n)}" placeholder="opcional"><span class="unit">µm</span><span class="hint" data-nh="${f.id}">${esc(nHint(f,v))}</span></div>`;
+  if(f.s)h+=`<div class="chips">${f.s.map(([k,l])=>{const on=v.s.includes(k);return `<span class="chip mini${on?' on':''}"><button type="button" data-s="${sec.id}" data-sf="${f.id}" data-k="${k}" aria-pressed="${on}">${esc(l)}</button></span>`;}).join('')}</div>`;
+  return h?`<div class="qrow"><span class="label">${esc(f.l)}</span>${h}</div>`:'';
+}
+function nHint(f,v){if(f.id!=='bm')return '';const n=num(v.n);return n===null?'IVMTS: pequeno ≤ 250, médio 251 a 400, grande > 400':'IVMTS:'+f.n.c(n).replace(' de tamanho',''); }
+function secCard(sec){
+  const eye=S.eyes[S.eye],sel=eye.sel[sec.id],n=secItems(eye,sec,'t').length;
+  const chips=sec.f.map(f=>{const on=!!sel[f.id];return `<span class="chip${on?' on':''}"><button type="button" data-s="${sec.id}" data-f="${f.id}" aria-pressed="${on}">${esc(f.l)}</button></span>`;}).join('');
+  const rows=sec.f.filter(f=>sel[f.id]).map(f=>optsRow(sec,f,sel[f.id])).join('');
+  return `<section class="sec" id="sec-${sec.id}"><div class="sec-h"><h2>${esc(sec.name)}</h2>${pill(n)}</div>
+   <div class="chips">${chips}</div>${rows}
+   <input class="outro" data-o="${sec.id}" type="text" placeholder="Outro achado (texto livre)" value="${esc(eye.outro[sec.id])}"></section>`;
+}
+function fovCard(){
+  const eye=S.eyes[S.eye],c=num(eye.cst),ab=eye.fov!=='presente';
+  return `<section class="sec" id="sec-fov"><div class="sec-h"><h2>Fóvea</h2><span class="pill${ab?' abn':''}" id="fovPill" style="text-transform:none">${c!==null?Math.round(c)+' µm':'falta espessura'}</span></div>
+   <div class="fovrow">
+    <div class="field"><span class="label">Depressão foveal</span><div class="chips">${FOV.map(([k,l])=>`<span class="chip${eye.fov===k?' on':''}"><button type="button" data-fov="${k}" aria-pressed="${eye.fov===k}">${esc(l)}</button></span>`).join('')}</div></div>
+    <div class="field"><label class="label" for="cst">Espessura central</label><div class="qline"><input class="numin" id="cst" type="text" inputmode="numeric" value="${esc(eye.cst)}" placeholder="ex.: 261"><span class="unit">µm</span></div></div>
+   </div>
+   <p class="hint">Nidek RS-3000: setor central (1 mm) do ETDRS 9 Sector, página MACULA MAP X-Y (ILM–RPE/BM). A cor do banco normativo só entra no laudo se houver correlação no B-scan.</p></section>`;
+}
+function imgCard(){
+  const L=IMGS[S.eye];
+  return `<section class="sec" id="sec-img"><div class="sec-h"><h2>Imagens do ${S.eye==='OD'?'olho direito':'olho esquerdo'}</h2>${pill(0,L.length?L.length+(L.length>1?' imagens':' imagem'):'nenhuma')}</div>
+   <div class="drop"><label class="dz" id="dz">Toque para escolher ou arraste as imagens do OCT aqui<input type="file" id="fileIn" accept="image/*" multiple hidden></label>
+   ${L.length?`<div class="thumbs">${L.map((x,i)=>`<div class="th"><img src="${x.url}" alt="${esc(x.name)}" data-view="${i}"><button class="x" type="button" data-rm="${i}" aria-label="Remover imagem">×</button></div>`).join('')}</div>`:''}
+   <p class="hint">As imagens ficam só nesta tela: não são salvas nem enviadas, e não entram no texto copiado.</p></div></section>`;
+}
+function othersCard(){
+  const eye=S.eyes[S.eye];
+  return `<section class="sec" id="sec-ot"><div class="sec-h"><h2>Outros achados</h2>${pill((eye.ot.trim()?1:0)+(eye.lim?1:0))}</div>
+   <div class="chips"><span class="chip${eye.lim?' on':''}"><button type="button" data-lim="1" aria-pressed="${eye.lim}">Qualidade limitada / artefato</button></span></div>
+   <textarea class="outro" data-ot="1" rows="2" placeholder="Texto livre, uma linha por item. Em branco, nada aparece no laudo." style="resize:vertical">${esc(eye.ot)}</textarea></section>`;
+}
+function renderSections(){
+  const sec=id=>secCard(SECTIONS.find(x=>x.id===id));
+  $('sections').innerHTML=imgCard()+sec('ivr')+fovCard()+sec('int')+sec('ext')+sec('epr')+othersCard();
+}
+function refreshPills(){
+  const eye=S.eyes[S.eye];
+  SECTIONS.forEach(sec=>{const el=document.querySelector('#sec-'+sec.id+' .pill');if(el)el.outerHTML=pill(secItems(eye,sec,'t').length);});
+  const o=document.querySelector('#sec-ot .pill');if(o)o.outerHTML=pill((eye.ot.trim()?1:0)+(eye.lim?1:0));
+  const fp=$('fovPill');if(fp){const c=num(eye.cst);fp.textContent=c!==null?Math.round(c)+' µm':'falta espessura';}
+}
+function update(){
+  $('out').innerHTML=reportHTML();
+  ['OD','OE'].forEach(e=>{$('c'+e).textContent=abnormal(S.eyes[e]);});
+  $('mstat').textContent='OD '+abnormal(S.eyes.OD)+' · OE '+abnormal(S.eyes.OE);
+  save();
+}
+function setEye(e){S.eye=e;$('app').dataset.eye=e;document.querySelector('.mbar').dataset.eye=e;
+  document.querySelectorAll('#eyeseg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.e===e));
+  $('copyEye').textContent='Copiar para '+other(e);renderSections();update();}
+function refocus(sel){const nb=document.querySelector(sel);if(nb)nb.focus();}
+
+/* ---------- eventos ---------- */
+const secs=$('sections');
+secs.addEventListener('click',ev=>{
+  const eye=S.eyes[S.eye];
+  const im=ev.target.closest('[data-view]');if(im){openLB(+im.dataset.view);return;}
+  const b=ev.target.closest('button');if(!b)return;
+  if(b.dataset.rm!==undefined){const i=+b.dataset.rm;URL.revokeObjectURL(IMGS[S.eye][i].url);IMGS[S.eye].splice(i,1);renderSections();return;}
+  if(b.dataset.lim){eye.lim=!eye.lim;renderSections();update();refocus('button[data-lim]');return;}
+  if(b.dataset.fov){eye.fov=b.dataset.fov;renderSections();update();refocus(`button[data-fov="${b.dataset.fov}"]`);return;}
+  if(b.dataset.sf){const v=eye.sel[b.dataset.s][b.dataset.sf],k=b.dataset.k,i=v.s.indexOf(k);if(i>=0)v.s.splice(i,1);else v.s.push(k);
+    renderSections();update();refocus(`button[data-sf="${b.dataset.sf}"][data-k="${k}"]`);return;}
+  if(b.dataset.f){const s=b.dataset.s,id=b.dataset.f,sel=eye.sel[s];
+    if(sel[id])delete sel[id];else{sel[id]={g:0,s:[],n:''};(EXCL[id]||[]).forEach(x=>{const ss=SEC_OF[x];delete eye.sel[ss.id][x];});}
+    renderSections();update();refocus(`#sec-${s} button[data-f="${id}"]`);}
+});
+secs.addEventListener('change',ev=>{const t=ev.target;
+  if(t.dataset.g){S.eyes[S.eye].sel[t.dataset.s][t.dataset.g].g=+t.value;update();}
+  if(t.id==='fileIn'){addFiles(t.files);}
+});
+secs.addEventListener('input',ev=>{const t=ev.target,eye=S.eyes[S.eye];
+  if(t.dataset.o!==undefined){eye.outro[t.dataset.o]=t.value;refreshPills();update();}
+  else if(t.dataset.ot){eye.ot=t.value;refreshPills();update();}
+  else if(t.dataset.n){const v=eye.sel[t.dataset.s][t.dataset.n];v.n=t.value;const f=SEC_OF[t.dataset.n].f.find(x=>x.id===t.dataset.n);const h=document.querySelector(`[data-nh="${t.dataset.n}"]`);if(h)h.textContent=nHint(f,v);update();}
+  else if(t.id==='cst'){eye.cst=t.value;refreshPills();update();}
+});
+/* Arrastar e soltar imagens */
+secs.addEventListener('dragover',ev=>{const z=ev.target.closest('#dz');if(!z)return;ev.preventDefault();z.classList.add('over');});
+secs.addEventListener('dragleave',ev=>{const z=ev.target.closest('#dz');if(z)z.classList.remove('over');});
+secs.addEventListener('drop',ev=>{const z=ev.target.closest('#dz');if(!z)return;ev.preventDefault();addFiles(ev.dataTransfer.files);});
+function addFiles(files){const e=S.eye;[...files].filter(f=>f.type.startsWith('image/')).forEach(f=>IMGS[e].push({url:URL.createObjectURL(f),name:f.name}));renderSections();}
+
+/* Visualizador ampliado */
+let lbI=0;
+function openLB(i){lbI=i;showLB();$('lb').hidden=false;$('lbClose').focus();}
+function showLB(){const L=IMGS[S.eye];if(!L.length){closeLB();return;}lbI=(lbI+L.length)%L.length;
+  $('lbImg').src=L[lbI].url;$('lbImg').alt=L[lbI].name;$('lbCap').textContent=S.eye+' · '+(lbI+1)+' de '+L.length;
+  $('lbB').classList.remove('full');$('lbZoom').textContent='Tamanho real';}
+function closeLB(){$('lb').hidden=true;}
+$('lbClose').addEventListener('click',closeLB);
+$('lbPrev').addEventListener('click',()=>{lbI--;showLB();});
+$('lbNext').addEventListener('click',()=>{lbI++;showLB();});
+const zoom=()=>{const f=$('lbB').classList.toggle('full');$('lbZoom').textContent=f?'Ajustar à tela':'Tamanho real';};
+$('lbZoom').addEventListener('click',zoom);$('lbImg').addEventListener('click',zoom);
+document.addEventListener('keydown',ev=>{if($('lb').hidden)return;if(ev.key==='Escape')closeLB();if(ev.key==='ArrowLeft'){lbI--;showLB();}if(ev.key==='ArrowRight'){lbI++;showLB();}});
+
+document.querySelectorAll('#eyeseg button').forEach(b=>b.addEventListener('click',()=>setEye(b.dataset.e)));
+$('copyEye').addEventListener('click',()=>{const o=other(S.eye),cst=S.eyes[o].cst;S.eyes[o]=JSON.parse(JSON.stringify(S.eyes[S.eye]));S.eyes[o].cst=cst;update();toast('Achados de '+S.eye+' copiados para '+o+' (espessura mantida)');});
+$('normEye').addEventListener('click',()=>{const cst=S.eyes[S.eye].cst;S.eyes[S.eye]=blankEye();S.eyes[S.eye].cst=cst;renderSections();update();toast(S.eye+' marcado como normal');});
+let armed=null;
+$('resetAll').addEventListener('click',ev=>{const b=ev.currentTarget;
+  if(!armed){b.textContent='Confirmar novo laudo';b.classList.add('warn');armed=setTimeout(()=>{armed=null;b.textContent='Novo laudo';b.classList.remove('warn');},3500);return;}
+  clearTimeout(armed);armed=null;b.textContent='Novo laudo';b.classList.remove('warn');
+  ['OD','OE'].forEach(e=>{IMGS[e].forEach(x=>URL.revokeObjectURL(x.url));IMGS[e]=[];});
+  S=blank();bindTech();setEye('OD');toast('Novo laudo iniciado');});
+
+function bindTech(){$('pac').value=S.pac;$('cterm').value=S.cterm;$('concl').value=S.concl;$('printImg').checked=!!S.pimg;$('ass').value=ASS;$('enc').value=ENC;}
+$('pac').addEventListener('input',e=>{S.pac=e.target.value;update();});
+$('cterm').addEventListener('change',e=>{S.cterm=e.target.value;update();});
+$('concl').addEventListener('input',e=>{S.concl=e.target.value;update();});
+$('conclBase').addEventListener('click',()=>{if(!S.concl.trim()){S.concl=autoConcl().join('\n');$('concl').value=S.concl;update();}$('concl').focus();});
+$('conclClear').addEventListener('click',()=>{S.concl='';$('concl').value='';update();toast('Conclusão automática');});
+$('printImg').addEventListener('change',e=>{S.pimg=e.target.checked;save();});
+$('ass').addEventListener('input',e=>{ASS=e.target.value;try{localStorage.setItem(KEYA,ASS);}catch(x){}update();});
+$('enc').addEventListener('input',e=>{ENC=e.target.value;try{localStorage.setItem(KEYE,ENC);}catch(x){}update();});
+
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,1800);}
+function copy(){
+  const txt=report(),html=`<html><head><meta charset="utf-8"><style>html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%}body,p,b{font-family:Arial,Helvetica,sans-serif;font-size:12pt}</style></head><body style="${P}">${reportHTML()}</body></html>`;
+  const legacy=()=>{const r=document.createRange();r.selectNodeContents($('out'));const s=getSelection();s.removeAllRanges();s.addRange(r);let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    if(ok){s.removeAllRanges();toast('Laudo copiado');}else toast('Texto selecionado, use Copiar do sistema');};
+  try{if(navigator.clipboard&&window.ClipboardItem){
+      const item=new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([txt],{type:'text/plain'})});
+      navigator.clipboard.write([item]).then(()=>toast('Laudo copiado'),legacy);return;}}catch(e){}
+  legacy();
+}
+$('copyTop').addEventListener('click',copy);$('copyBot').addEventListener('click',copy);
+$('copyPlain').addEventListener('click',()=>{const txt=report();
+  const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,txt.length);let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();toast(ok?'Texto simples copiado':'Não foi possível copiar');};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>toast('Texto simples copiado'),fb);else fb();});
+$('seeBot').addEventListener('click',()=>document.querySelector('.preview').scrollIntoView({behavior:'smooth',block:'start'}));
+/* Impressão: imagens opcionais em página separada, por olho */
+function fillPrintImgs(){const box=$('printImgs');const has=IMGS.OD.length||IMGS.OE.length;
+  box.classList.toggle('on',!!(S.pimg&&has));
+  box.innerHTML=S.pimg&&has?['OD','OE'].filter(e=>IMGS[e].length).map(e=>`<h3>${EYE_NAME[e]}</h3>`+IMGS[e].map(x=>`<img src="${x.url}" alt="">`).join('')).join(''):'';}
+window.addEventListener('beforeprint',fillPrintImgs);
+$('printBtn').addEventListener('click',()=>{fillPrintImgs();window.print();});
+
+bindTech();setEye(S.eye||'OD');
+</script>
+</body>
+</html>
