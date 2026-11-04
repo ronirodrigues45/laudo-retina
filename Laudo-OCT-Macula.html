@@ -252,7 +252,7 @@ const SECTIONS = [
   {id:'cisf', l:'Cisto foveal isolado', t:'Presença de cisto intra-retiniano em região foveal', c:null},
   {id:'hrf', l:'Pontos hiperrefletivos', t:'Presença de pontos hiperrefletivos {g}', c:null,
    g:[['Exsudatos/hemorragias','que podem corresponder a exsudatos/hemorragias',''],['Com sombreamento (exsudatos)','com sombreamento posterior que podem corresponder a exsudatos','']]},
-  {id:'deso', l:'Desorganização com atrofia', take:'4-6', sec2:1, t:'Evidencia-se desorganização das camadas internas e externa da retina com áreas de atrofia do EPR', c:'desorganização das camadas retinianas com atrofia do EPR'},
+  {id:'deso', l:'Desorganização com atrofia', take:'4-6', sec2:1, t:'Evidencia-se desorganização das camadas internas e externa da retina com áreas de atrofia do EPR', c:'desorganização das camadas retinianas e atrofia do EPR'},
   {id:'dril', l:'DRIL', t:'Desorganização das camadas internas da retina (DRIL)', c:null},
   {id:'isq', l:'Isquemia interna', t:'Hiperrefletividade e espessamento das camadas internas da retina, sugestivos de isquemia retiniana interna', c:'isquemia retiniana interna'},
   {id:'pamm', l:'PAMM', t:'Faixa hiperrefletiva na camada nuclear interna, sugestiva de maculopatia média aguda paracentral (PAMM)', c:'maculopatia média aguda paracentral (PAMM)'},
@@ -705,7 +705,7 @@ Medida prejudicada:
 
 Fóvea fina (179 µm), camadas desorganizadas e hipertransmissão para a coroide (itens 4 a 6 substituídos por um só):
 ["Interface vítreo-retiniana: Sem alterações","Depressão foveal presente","Espessura central: 179 µm","Evidencia-se desorganização das camadas internas e externa da retina com áreas de atrofia do EPR"]
-Conclusão (só nesse olho): Exame compatível com desorganização das camadas retinianas com atrofia do EPR em olho direito`;
+Conclusão (só nesse olho): Exame compatível com desorganização das camadas retinianas e atrofia do EPR em olho direito`;
 function buildPrompt(list,th){
   th=th||{};const thTxt=['OD','OE'].filter(e=>num(th[e])!==null).map(e=>{const v=Math.round(num(th[e]));return (e==='OD'?'olho direito':'olho esquerdo')+' '+v+' µm'+(v<210?' (BAIXA: procure afinamento, atrofia ou desorganização)':v>320?' (ALTA: procure edema, líquido, tração ou membrana)':'');}).join('; ');
   return `Você é o retinólogo do serviço laudando uma tomografia de coerência óptica (OCT) de mácula, no modelo e no estilo exatos do serviço. As imagens anexadas são, na ordem:
