@@ -462,11 +462,9 @@ function fovCard(){
 function imgCard(){
   const L=IMGS[S.eye],all=IMGS.OD.length+IMGS.OE.length;
   let ai='';
-  if(all&&SAMPLE){
+  if(all){
     ai=`<div class="ai"><div class="actions"><button class="copy" type="button" id="aiRead"${AI.busy?' disabled':''}>${AI.busy?'Lendo…':'Ler imagem'}</button>${AI.busy?'<button class="btn" type="button" id="aiStop">Parar</button>':''}</div>
-     <p class="hint${AI.err?' bad':''}">${esc(AI.msg||'Analisa todas as imagens carregadas (dos dois olhos) e escreve o laudo no seu modelo, direto no quadro do laudo.')}</p></div>`;
-  }else if(all&&!HAS_CLAUDE){
-    ai=`<p class="hint">A leitura automática ("Ler imagem") funciona na versão deste laudo publicada no Claude.</p>`;
+     <p class="hint${AI.err?' bad':''}">${esc(AI.msg||'Analisa todas as imagens carregadas (dos dois olhos) e escreve o laudo no seu modelo, direto no quadro do laudo.')}</p>${AI.link?`<p class="hint"><a href="${CLAUDE_URL}" target="_blank" rel="noopener">Abrir o laudo no Claude</a></p>`:''}</div>`;
   }
   return `<section class="sec" id="sec-img"><div class="sec-h"><h2>Imagens do ${S.eye==='OD'?'olho direito':'olho esquerdo'}</h2>${pill(0,L.length?L.length+(L.length>1?' imagens':' imagem'):'nenhuma')}</div>
    <div class="drop"><label class="dz" id="dz">Toque para escolher ou arraste as imagens ou o PDF do OCT aqui<input type="file" id="fileIn" accept="image/*,.heic,.heif,application/pdf,.pdf" multiple hidden></label>
@@ -604,10 +602,11 @@ document.addEventListener('error',ev=>{const t=ev.target;if(t.tagName==='IMG'&&t
 
 /* ---------- Ler imagem: só na versão publicada no Claude (capacidade "sample") ---------- */
 const HAS_CLAUDE=!!(window.claude&&typeof window.claude.use==='function');
-let SAMPLE=null,IMG_LIM=null,aiCtl=null;
-const AI={busy:false,msg:'',err:false};
+let SAMPLE=null,IMG_LIM=null,aiCtl=null,SAMPLE_P=Promise.resolve(null);
+const CLAUDE_URL='https://claude.ai/artifact/FxfLtF1h9wmcvvt2zzhjoS';
+const AI={busy:false,msg:'',err:false,link:false};
 if(HAS_CLAUDE){
-  window.claude.use('sample').then(async sm=>{if(!sm)return;const l=await sm.limits().catch(()=>null);if(!l||!l.images)return;SAMPLE=sm;IMG_LIM=l.images;renderImg();}).catch(()=>{});
+  SAMPLE_P=window.claude.use('sample').then(async sm=>{if(!sm)return null;const l=await sm.limits().catch(()=>null);if(!l||!l.images)return null;SAMPLE=sm;IMG_LIM=l.images;return sm;}).catch(()=>null);
 }
 /* Guia do serviço (guia-laudo-oct.md), condensado para a leitura automática */
 const GUIDE=`MODELO DO SERVIÇO (itens sem ponto final; olhos por extenso)
@@ -830,7 +829,15 @@ function applyThickness(r,th,notes){
     S.eyes[e].cst=String(v);});
 }
 async function readImages(){
-  if(AI.busy||!SAMPLE)return;
+  if(AI.busy)return;
+  /* Botão sempre visível: fora do Claude, explica e oferece o link da versão com leitura */
+  if(!SAMPLE){AI.busy=true;AI.err=false;AI.link=false;AI.msg='Conectando ao Claude…';renderImg();
+    const sm=HAS_CLAUDE?await Promise.race([SAMPLE_P,new Promise(r=>setTimeout(()=>r(null),12000))]):null;
+    AI.busy=false;
+    if(!sm){AI.err=true;AI.link=!HAS_CLAUDE;
+      AI.msg=HAS_CLAUDE?'A leitura de imagens não está disponível nesta visualização do Claude. Recarregue a página e tente de novo.':'A leitura das imagens só funciona na versão deste laudo aberta no Claude. Esta cópia (GitHub ou arquivo) monta o laudo pelo formulário.';
+      renderImg();return;}}
+  AI.link=false;
   const src=[...IMGS.OD,...IMGS.OE].filter(x=>x.blob);
   if(!src.length)return;
   AI.busy=true;AI.err=false;AI.msg='Preparando as imagens…';renderImg();
