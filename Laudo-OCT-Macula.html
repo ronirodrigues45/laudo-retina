@@ -247,6 +247,7 @@ const SECTIONS = [
    g:[['Sem especificar','',''],['Foveosquise miópica',', em olho míope',' (foveosquise miópica)']]}
  ]},
  {id:'ext', name:'Retina neurossensorial', normal:'Retina neurossensorial sem alterações', f:[
+  {id:'afov', l:'Afinamento foveal', t:'afinamento da retina neurossensorial em região foveal', c:'afinamento foveal'},
   {id:'espt', l:'Espessamento por tração', t:'retina neurossensorial com espessamento e deformação do perfil foveal associados à tração vitreomacular', c:null},
   {id:'esp', l:'Espessamento', t:'retina neurossensorial com espessamento', c:null},
   {id:'fsr', l:'Fluido sub-retiniano', t:'presença de fluido sub-retiniano', c:'fluido sub-retiniano'},
@@ -496,11 +497,12 @@ function loadPdfJs(){
 async function pdfPages(file){
   const lib=await loadPdfJs();const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
   for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const v1=pg.getViewport({scale:1});
-    const v=pg.getViewport({scale:Math.min(3,1800/Math.max(v1.width,v1.height))});
+    const v=pg.getViewport({scale:Math.min(4,2400/Math.max(v1.width,v1.height))});
+    let both=false;try{const tc=await pg.getTextContent();both=/\bBOTH\b|Eye\s*:\s*Both/i.test(tc.items.map(t=>t.str).join(' '));}catch(x){}
     const c=document.createElement('canvas');c.width=Math.round(v.width);c.height=Math.round(v.height);
     const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
     await pg.render({canvasContext:ctx,viewport:v}).promise;
-    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));if(blob)out.push({blob,name:file.name.replace(/\.pdf$/i,'')+' · pág. '+i});}
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));if(blob)out.push({blob,both,name:file.name.replace(/\.pdf$/i,'')+' · pág. '+i});}
   return out;
 }
 async function addFiles(files){
@@ -511,7 +513,7 @@ async function addFiles(files){
   if(!ok.length){toast('Nenhuma imagem ou PDF reconhecido');return;}
   for(const f of ok){
     if(isPdf(f)){toast('Abrindo o PDF…');
-      try{for(const p of await pdfPages(f))IMGS[e].push({url:await toDataURL(p.blob),name:p.name,blob:p.blob});}
+      try{for(const p of await pdfPages(f))IMGS[e].push({url:await toDataURL(p.blob),name:p.name,blob:p.blob,both:p.both});}
       catch(x){toast('Não foi possível abrir o PDF. Envie as páginas como imagem.');}}
     else{try{IMGS[e].push({url:await toDataURL(f),name:f.name,blob:f});}catch(x){toast('Não foi possível ler '+f.name);}}
     renderImg();
@@ -553,16 +555,18 @@ const STYLE_EX=`Itens alterados, como o laudador escreve:
 • Depressão foveal alterada
 • Presença de cistos intra-retinianos compatíveis com edema macular; presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias
 • Interrupção focal da zona elipsoide em região macular
+• Afinamento da retina neurossensorial em região foveal
 
 Conclusões, como o laudador escreve:
 - Exame dentro da normalidade
 - Exame sugestivo de membrana epirretiniana em olho direito
 - Exame compatível com edema macular bilateral
-- Achados compatíveis com tração vitreomacular em ambos os olhos, com maior espessura central no olho esquerdo`;
+- Achados compatíveis com tração vitreomacular em ambos os olhos, com maior espessura central no olho esquerdo
+- Exame sugestivo de afinamento foveal em olho esquerdo`;
 function buildPrompt(list){
   return `Você é um especialista em retina laudando uma tomografia de coerência óptica (OCT) de mácula. As imagens anexadas são, na ordem:
-${list.map((x,i)=>`Imagem ${i+1}: "${x.name}"`).join('\n')}
-Uma mesma imagem pode mostrar os dois olhos. Identifique o olho pelos rótulos da própria imagem (R, OD, Eye:R = olho direito; L, OS, OE, Eye:L = olho esquerdo).
+${list.map((x,i)=>`Imagem ${i+1}: ${x.desc}`).join('\n')}
+Páginas com os dois olhos foram enviadas também divididas ao meio, para mais detalhe: neste aparelho o olho direito (R) fica à esquerda da página e o olho esquerdo (L) à direita. Use as metades para a morfologia e a página inteira para cabeçalho, índices de qualidade e contexto. Nas demais imagens, identifique o olho pelos rótulos (R, OD, Eye:R = olho direito; L, OS, OE, Eye:L = olho esquerdo).
 
 TAREFA: analisar as imagens e escrever o laudo no MODELO do laudador, com o vocabulário e o estilo dele.
 
@@ -576,9 +580,10 @@ REGRAS DE ESCRITA
 2. Estrutura normal: copie a frase do modelo literalmente. Estrutura alterada: substitua só aquele item por uma frase descritiva no estilo dos exemplos. Dois achados na mesma estrutura ficam no mesmo item, separados por ponto e vírgula.
 3. Itens sem ponto final. Sem abreviações de olho: escreva olho direito, olho esquerdo, ambos os olhos ou bilateral.
 4. Espessura central: valor do setor central (1 mm) do mapa ETDRS de espessura total (ILM até EPR/membrana de Bruch), no formato "Espessura central: 326 µm". Sem mapa ETDRS legível: "Espessura central: ___ µm". Não estime pelo B-scan.
-5. Descreva só o que está claramente visível nos B-scans. Cores do banco normativo só viram achado com correlação no B-scan. Áreas cinzas no mapa são falha de segmentação e não devem ser interpretadas.
-6. Achado relevante, mas incerto: use "sugestivo de" no item e na conclusão.
-7. Conclusão: uma frase no estilo dos exemplos, sem ponto final.
+5. Checagem obrigatória da espessura: compare o setor central do ETDRS com a escala do banco normativo ao lado do mapa (no topo da escala, acima do normal; na faixa verde, normal; abaixo do verde, amarelo ou vermelho, abaixo do normal) e com os setores vizinhos. Central abaixo do normal ou fóvea visivelmente mais fina no B-scan: descreva o afinamento no item da retina neurossensorial ("Afinamento da retina neurossensorial em região foveal") e inclua na conclusão. Central acima do normal: procure a causa (edema, tração, membrana) e descreva o espessamento. Se a cor indicar alteração e o B-scan não confirmar, não descreva no laudo e registre na conferência.
+6. Percorra cada estrutura nos B-scans: interface (membrana epirretiniana, adesão ou tração vítrea, buraco); contorno e profundidade da depressão foveal; espessura (espessamento ou afinamento); camadas internas (cistos, pontos hiperrefletivos, desorganização); retina externa (fluido sub-retiniano, zona elipsoide, membrana limitante externa); EPR e coroide (drusas, descolamentos, atrofia). Descreva também alterações sutis, desde que visíveis.
+7. Achado provável, mas não confirmado: use "sugestivo de" no item e na conclusão. Áreas cinzas no mapa são falha de segmentação e não devem ser interpretadas.
+8. Conclusão: uma frase no estilo dos exemplos, sem ponto final.
 
 TAMBÉM INFORME
 - "paciente": nome do cabeçalho em ordem direta (o aparelho costuma exibir SOBRENOME NOME), em maiúsculas; "" se não houver.
@@ -637,18 +642,35 @@ function aiErr(e){
     invalid_json:'A resposta não veio no formato esperado. Toque em Ler imagem para tentar de novo.',refused:'A leitura foi recusada para estas imagens.',
     prompt_too_large:'Imagens demais para uma leitura. Remova algumas e tente de novo.',empty_completion:'A leitura não trouxe resultado. Tente de novo.'})[c]||'Falha na leitura. Tente novamente.';
 }
+/* Divide uma página com os dois olhos em duas imagens (esquerda = olho direito, direita = olho esquerdo) */
+async function cropHalves(blob){
+  const bmp=await createImageBitmap(blob);const w=bmp.width,h=bmp.height,m=Math.round(w/2);
+  const part=(x,cw)=>new Promise(res=>{const c=document.createElement('canvas');c.width=cw;c.height=h;
+    const ctx=c.getContext('2d');ctx.drawImage(bmp,x,0,cw,h,0,0,cw,h);c.toBlob(b=>b?res(b):res(null),'image/jpeg',0.92);});
+  const l=await part(0,m),r=await part(m,w-m);if(bmp.close)bmp.close();
+  if(!l||!r)throw new Error('crop');return [l,r];
+}
 async function readImages(){
   if(AI.busy||!SAMPLE)return;
-  let list=[...IMGS.OD,...IMGS.OE].filter(x=>x.blob);
-  if(!list.length)return;
-  let cut=0;if(IMG_LIM&&list.length>IMG_LIM.maxCount){cut=list.length-IMG_LIM.maxCount;list=list.slice(0,IMG_LIM.maxCount);}
-  AI.busy=true;AI.err=false;
+  const src=[...IMGS.OD,...IMGS.OE].filter(x=>x.blob);
+  if(!src.length)return;
+  AI.busy=true;AI.err=false;AI.msg='Preparando as imagens…';renderImg();
+  const prim=[],extra=[];
+  for(const x of src){
+    if(x.both){try{const [l,r]=await cropHalves(x.blob);
+      prim.push({blob:l,desc:`"${x.name}", metade esquerda da página: olho direito (R)`},{blob:r,desc:`"${x.name}", metade direita da página: olho esquerdo (L)`});
+      extra.push({blob:x.blob,desc:`"${x.name}", página inteira (cabeçalho, índices de qualidade e contexto)`});continue;}catch(e){}}
+    prim.push({blob:x.blob,desc:`"${x.name}"`});
+  }
+  const max=IMG_LIM?IMG_LIM.maxCount:prim.length+extra.length;
+  let list=prim.slice(0,max);const cut=Math.max(0,prim.length-max);
+  list=list.concat(extra.slice(0,Math.max(0,max-list.length)));
   AI.msg='Analisando '+list.length+(list.length>1?' imagens':' imagem')+'. Pode levar 1 a 2 minutos.';renderImg();
   aiCtl=new AbortController();let done=false;
   try{
     const r=await SAMPLE.json(buildPrompt(list),{images:list.map(x=>x.blob),modelTier:'complex',signal:aiCtl.signal});
     {const c=aiCompose(r);S.txt=c.txt;S.src='ai';S.notes=c.notes;}save();done=true;
-    AI.msg='Laudo preenchido com a leitura das imagens.'+(cut?' '+cut+(cut>1?' imagens ficaram':' imagem ficou')+' de fora (limite de '+IMG_LIM.maxCount+' por leitura).':'');
+    AI.msg='Laudo preenchido com a leitura das imagens.'+(cut?' '+cut+(cut>1?' imagens ficaram':' imagem ficou')+' de fora (limite de '+max+' por leitura).':'');
   }catch(e){AI.msg=aiErr(e);AI.err=!!(e&&e.code!=='cancelled');}
   finally{AI.busy=false;aiCtl=null;renderImg();update();
     if(done){toast('Laudo preenchido');if(matchMedia('(max-width:900px)').matches)document.querySelector('.preview').scrollIntoView({behavior:'smooth',block:'start'});}}
