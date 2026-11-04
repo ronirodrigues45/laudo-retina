@@ -114,20 +114,23 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 .lb-b.full{align-items:flex-start;justify-content:flex-start}
 .lb-b.full img{max-width:none;max-height:none;cursor:zoom-out}
 
-.preview{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:calc(100vh - 24px)}
+.preview{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:calc(100vh - 24px);overflow-y:auto}
 @media (max-width:900px){.preview{position:static;max-height:none}}
 .prev-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);gap:8px;flex-wrap:wrap}
 .copy{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 14px;font-weight:600;cursor:pointer}
 :root[data-theme="dark"] .copy{color:#0E1317}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .copy{color:#0E1317}}
 /* Laudo como folha: sempre fundo branco, Arial 12 justificado */
-#out{margin:0;padding:18px 18px 22px;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;text-align:justify;hyphens:none;overflow:auto;flex:1;min-width:0;overflow-wrap:break-word}
+#out{margin:0;padding:18px 18px 22px;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;text-align:justify;hyphens:none;overflow:visible;flex:none;min-width:0;overflow-wrap:break-word}
 #out p{margin:0}
 #out:focus{outline:none;box-shadow:inset 0 0 0 2px var(--accent)}
 .mode{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--line);font-size:.82rem;color:var(--muted)}
 .mode.on{background:var(--accent-soft);color:var(--accent)}
 .mode .btn{padding:4px 9px;font-size:.8rem}
 .foot{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.opts summary,.notes summary{cursor:pointer;list-style-position:inside}
+.opts[open] summary{margin-bottom:10px}
+.opts>div{display:flex;flex-direction:column;gap:10px}
 .check{display:flex;gap:6px;align-items:center;font-size:.9rem;cursor:pointer}
 .check input{accent-color:var(--accent);width:16px;height:16px}
 
@@ -195,12 +198,12 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
       <div class="mode" id="mode"><span id="modeTxt"></span><button class="btn" type="button" id="modeBack" hidden>Voltar ao formulário</button></div>
       <div id="out" contenteditable="true" spellcheck="true" lang="pt-BR" role="textbox" aria-multiline="true" aria-label="Laudo (editável)"></div>
       <div class="foot" id="aiNotes" hidden></div>
-      <div class="foot">
+      <details class="foot opts" id="optsBox"><summary class="label">Ajustes do laudo: conclusão, encerramento e assinatura</summary><div>
         <div class="field"><label class="label" for="cterm">Início da conclusão automática</label><select id="cterm"><option value="compatível com">Exame compatível com…</option><option value="sugestivo de">Exame sugestivo de…</option></select></div>
         <label class="check"><input type="checkbox" id="printImg"> Incluir as imagens na impressão</label>
         <div class="field"><label class="label" for="enc">Texto de encerramento (fica salvo neste navegador)</label><textarea id="enc" rows="3"></textarea></div>
         <div class="field"><label class="label" for="ass">Assinatura, uma linha por item (fica salva neste navegador)</label><textarea id="ass" rows="3" placeholder="NOME SOBRENOME&#10;CRMBA 00000 / RQE 00000&#10;OFTALMOLOGISTA"></textarea></div>
-      </div>
+      </div></details>
       <div id="printImgs"></div>
     </aside>
   </div>
@@ -499,7 +502,7 @@ function renderOut(){
   $('mode').classList.toggle('on',S.txt!==null);$('modeBack').hidden=S.txt===null;
   const nb=$('aiNotes'),eyesA=['OD','OE'].filter(e=>Array.isArray(S.ana[e])&&S.ana[e].length);
   nb.hidden=!S.notes.length&&!eyesA.length;
-  nb.innerHTML=(S.notes.length?`<div class="notes"><span class="label">Conferência da leitura (não entra no laudo)</span><ul>${S.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`:'')
+  nb.innerHTML=(S.notes.length?`<details class="notes"><summary class="label">Conferência da leitura · ${S.notes.length} ${S.notes.length>1?'itens':'item'} (não entra no laudo)</summary><ul>${S.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></details>`:'')
     +eyesA.map(e=>`<details class="notes ana"><summary class="label">Análise por estrutura · ${EYE_NAME[e].toLowerCase()}</summary><ul>${S.ana[e].map(([l,t])=>`<li><b>${esc(l)}:</b> ${esc(t)}</li>`).join('')}</ul></details>`).join('');
 }
 function update(){
@@ -712,7 +715,7 @@ function buildPrompt(list,th){
   th=th||{};const thTxt=['OD','OE'].filter(e=>num(th[e])!==null).map(e=>{const v=Math.round(num(th[e]));return (e==='OD'?'olho direito':'olho esquerdo')+' '+v+' µm'+(v<210?' (BAIXA: procure afinamento, atrofia ou desorganização)':v>320?' (ALTA: procure edema, líquido, tração ou membrana)':'');}).join('; ');
   return `Você é o retinólogo do serviço laudando uma tomografia de coerência óptica (OCT) de mácula, no modelo e no estilo exatos do serviço. As imagens anexadas são, na ordem:
 ${list.map((x,i)=>`Imagem ${i+1}: ${x.desc}`).join('\n')}
-Páginas com os dois olhos foram enviadas também divididas ao meio, para mais detalhe (metade esquerda = olho direito; metade direita = olho esquerdo). Use as metades para a morfologia e a página inteira para cabeçalho, qualidade e contexto.
+Os B-scans de cada olho vêm reunidos num mosaico, em resolução original, com o protocolo escrito no topo de cada corte: são a fonte principal da morfologia. Metades de página: metade esquerda = olho direito; metade direita = olho esquerdo. Analise TODOS os cortes de cada mosaico antes de concluir.
 ${thTxt?`
 ESPESSURA CENTRAL JÁ LIDA NO ETDRS: ${thTxt}. Nos exames normais do serviço, neste aparelho, a espessura central fica entre cerca de 230 e 300 µm. Espessura fora dessa faixa exige que você encontre e descreva a causa nos B-scans antes de usar frases normais.
 `:''}
@@ -806,6 +809,17 @@ async function cropRegion(blob,[x0,y0,x1,y1],scale){
   const ctx=c.getContext('2d');ctx.imageSmoothingQuality='high';ctx.drawImage(bmp,sx,sy,sw,sh,0,0,c.width,c.height);if(bmp.close)bmp.close();
   return await new Promise(r=>c.toBlob(r,'image/png'));
 }
+/* Junta imagens num só arquivo, cada uma com um rótulo no topo ('col' empilha; 'row' lado a lado) */
+async function mosaic(items,dir){
+  const bmps=await Promise.all(items.map(it=>createImageBitmap(it.blob)));const G=8,FS=dir==='row'?Math.max(24,Math.round(bmps[0].width/22)):24,L=FS+12;
+  const W=dir==='row'?bmps.reduce((a,b)=>a+b.width,0)+G*(bmps.length-1):Math.max(...bmps.map(b=>b.width));
+  const H=dir==='row'?Math.max(...bmps.map(b=>b.height))+L:bmps.reduce((a,b)=>a+b.height+L,0)+G*(bmps.length-1);
+  const c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  ctx.font='bold '+FS+'px Arial,Helvetica,sans-serif';ctx.textBaseline='middle';let x=0,y=0;
+  bmps.forEach((b,i)=>{ctx.fillStyle='#000';ctx.fillText(items[i].lab,x+6,y+L/2);ctx.drawImage(b,x,y+L);
+    if(dir==='row')x+=b.width+G;else y+=b.height+L+G;if(b.close)b.close();});
+  return await new Promise(r=>c.toBlob(r,'image/jpeg',0.93));
+}
 async function etdrsCrops(src){
   const out=[];
   for(const x of src){if(!x.map)continue;
@@ -878,25 +892,25 @@ async function readImages(){
   const src=[...IMGS.OD,...IMGS.OE].filter(x=>x.blob);
   if(!src.length)return;
   AI.busy=true;AI.err=false;AI.msg='Preparando as imagens…';renderImg();
-  const prim=[],extra=[];
-  /* Páginas CROSS e LINE com os dois olhos: cada B-scan recortado em resolução nativa */
-  const BSCAN={CROSS:[['OD','horizontal',[.109,.486,.411,.703]],['OD','vertical',[.109,.708,.411,.925]],['OE','horizontal',[.589,.486,.891,.703]],['OE','vertical',[.589,.708,.891,.925]]],
-    LINE:[['OD','horizontal de 12 mm',[.062,.476,.458,.759]],['OE','horizontal de 12 mm',[.542,.477,.938,.759]]]};
+  /* O Claude aceita poucas imagens por leitura: o essencial vai agrupado em mosaicos, em ordem de prioridade */
+  const BSCAN={CROSS:[['OD','CROSS 6 mm, horizontal',[.109,.486,.411,.703]],['OD','CROSS 6 mm, vertical',[.109,.708,.411,.925]],['OE','CROSS 6 mm, horizontal',[.589,.486,.891,.703]],['OE','CROSS 6 mm, vertical',[.589,.708,.891,.925]]],
+    LINE:[['OD','LINE 12 mm, horizontal',[.062,.476,.458,.759]],['OE','LINE 12 mm, horizontal',[.542,.477,.938,.759]]]};
+  const panels={OD:[],OE:[]},rest=[],pages=[];let head=null;
   for(const x of src){
-    if(x.both&&BSCAN[x.prot]){try{
-      for(const [e,o,box] of BSCAN[x.prot])prim.push({blob:await cropRegion(x.blob,box,1),desc:`B-scan ${o} do ${e==='OD'?'olho direito':'olho esquerdo'} (protocolo ${x.prot==='CROSS'?'MACULA CROSS 6 mm':'MACULA LINE 12 mm'}), em resolução original`});
-      extra.push({blob:x.blob,desc:`"${x.name}", página inteira (cabeçalho, índices de qualidade e contexto)`});continue;}catch(e){}}
-    if(x.both){try{const [l,r]=await cropHalves(x.blob);
-      prim.push({blob:l,desc:`"${x.name}", metade esquerda da página: olho direito (R)`},{blob:r,desc:`"${x.name}", metade direita da página: olho esquerdo (L)`});
-      extra.push({blob:x.blob,desc:`"${x.name}", página inteira (cabeçalho, índices de qualidade e contexto)`});continue;}catch(e){}}
-    prim.push({blob:x.blob,desc:`"${x.name}"`});
+    if(x.both&&!head){try{head=await cropRegion(x.blob,[0,0,1,.245],.6);}catch(e){}}
+    if(x.both&&BSCAN[x.prot]){try{for(const [e,lab,box] of BSCAN[x.prot])panels[e].push({lab,blob:await cropRegion(x.blob,box,1)});continue;}catch(e){}}
+    if(x.both&&!x.map){try{const [l,r]=await cropHalves(x.blob);
+      rest.push({blob:l,desc:`"${x.name}", metade esquerda da página: olho direito (R)`},{blob:r,desc:`"${x.name}", metade direita da página: olho esquerdo (L)`});continue;}catch(e){}}
+    if(!x.both)pages.push({blob:x.blob,desc:`"${x.name}" (página inteira)`});
   }
   const crops=await etdrsCrops(src);
-  crops.forEach(c=>prim.unshift({blob:c.blob,desc:`mapa ETDRS ampliado do ${c.eye==='OD'?'olho direito':'olho esquerdo'}: o número do círculo central é a espessura central`}));
-  if(crops.length===2)[prim[0],prim[1]]=[prim[1],prim[0]];
-  const max=IMG_LIM?IMG_LIM.maxCount:prim.length+extra.length;
-  let list=prim.slice(0,max);const cut=Math.max(0,prim.length-max);
-  list=list.concat(extra.slice(0,Math.max(0,max-list.length)));
+  const list=[];
+  if(crops.length){try{list.push({blob:await mosaic(crops.map(c=>({lab:c.eye==='OD'?'OLHO DIREITO':'OLHO ESQUERDO',blob:c.blob})),'row'),desc:'mapas ETDRS ampliados (olho direito à esquerda, olho esquerdo à direita): o número do círculo central é a espessura central'});}catch(e){}}
+  for(const e of ['OD','OE'])if(panels[e].length){try{list.push({blob:await mosaic(panels[e],'col'),desc:`mosaico com todos os B-scans do ${e==='OD'?'olho direito':'olho esquerdo'} em resolução original (${panels[e].map(p=>p.lab).join('; ')}), cada um identificado no topo`});}catch(e){}}
+  if(head)list.push({blob:head,desc:'cabeçalho do exame (nome, data, SQI, SSI)'});
+  pages.forEach(p=>list.push(p));rest.forEach(p=>list.push(p));
+  src.filter(x=>x.both).forEach(x=>list.push({blob:x.blob,desc:`"${x.name}", página inteira (contexto)`}));
+  const max=IMG_LIM?IMG_LIM.maxCount:list.length;const cut=Math.max(0,list.length-max);list.splice(max);
   AI.msg='Analisando '+list.length+(list.length>1?' imagens':' imagem')+'. Pode levar 1 a 2 minutos.';renderImg();
   aiCtl=new AbortController();let done=false;
   try{
@@ -983,6 +997,7 @@ $('printBtn').addEventListener('click',()=>{fillPrintImgs();window.print();});
 
 if(HAS_CLAUDE){$('printBtn').hidden=true;$('printImg').closest('label').hidden=true;}
 bindTech();setEye(S.eye||'OD');
+if(!ASS.trim())$('optsBox').open=true;
 </script>
 </body>
 </html>
