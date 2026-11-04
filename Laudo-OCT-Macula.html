@@ -119,13 +119,12 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 :root[data-theme="dark"] .copy{color:#0E1317}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .copy{color:#0E1317}}
 /* Laudo como folha: sempre fundo branco, Arial 12 justificado */
-#out,#aiSheet{margin:0;padding:18px 18px 22px;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;text-align:justify;hyphens:none;overflow:auto;flex:1;min-width:0;overflow-wrap:break-word}
-#out p,#aiSheet p{margin:0}
-.aiout{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
-.aiout .prev-h h2{font-family:var(--f-label);font-weight:600;font-size:1rem;margin:0;letter-spacing:.02em}
-#aiSheet{max-width:820px;width:100%;margin:0 auto;outline:none}
-#aiSheet:focus{box-shadow:inset 0 0 0 2px var(--accent)}
-.aiout .foot .notes{margin:0}
+#out{margin:0;padding:18px 18px 22px;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.4;text-align:justify;hyphens:none;overflow:auto;flex:1;min-width:0;overflow-wrap:break-word}
+#out p{margin:0}
+#out:focus{outline:none;box-shadow:inset 0 0 0 2px var(--accent)}
+.mode{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--line);font-size:.82rem;color:var(--muted)}
+.mode.on{background:var(--accent-soft);color:var(--accent)}
+.mode .btn{padding:4px 9px;font-size:.8rem}
 .foot{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
 .check{display:flex;gap:6px;align-items:center;font-size:.9rem;cursor:pointer}
 .check input{accent-color:var(--accent);width:16px;height:16px}
@@ -147,7 +146,7 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
   .grid{display:block}
   .preview{border:0;position:static;max-height:none}
   #out{padding:0;overflow:visible}
-  .aiout{display:none!important}
+  .mode{display:none!important}
   #printImgs.on{display:block;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;break-before:page}
   #printImgs h3{font-size:12pt;margin:0 0 8px}
   #printImgs img{display:block;max-width:100%;max-height:11cm;margin:0 auto 10px;break-inside:avoid}
@@ -160,7 +159,7 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 <div class="wrap" id="app" data-eye="OD">
   <header class="top">
     <h1>Laudo de OCT de Mácula</h1>
-    <p class="sub">Sem seleção, a estrutura sai normal. Achado igual nos dois olhos sai como "bilateral" na conclusão. <a class="back" href="index.html">‹ Modelos</a></p>
+    <p class="sub">Sem seleção, a estrutura sai normal. O laudo ao lado pode ser editado direto antes de copiar. <a class="back" href="index.html">‹ Modelos</a></p>
   </header>
 
   <div class="grid">
@@ -187,12 +186,11 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
     <aside class="preview" aria-label="Laudo gerado">
       <div class="prev-h"><span class="label">Laudo</span>
         <div class="actions"><button class="btn" id="printBtn">Imprimir</button><button class="btn" id="copyPlain">Copiar texto simples</button><button class="copy" id="copyTop">Copiar laudo</button></div></div>
-      <div id="out" tabindex="0" lang="pt-BR"></div>
+      <div class="mode" id="mode"><span id="modeTxt"></span><button class="btn" type="button" id="modeBack" hidden>Voltar ao formulário</button></div>
+      <div id="out" contenteditable="true" spellcheck="true" lang="pt-BR" role="textbox" aria-multiline="true" aria-label="Laudo (editável)"></div>
+      <div class="foot" id="aiNotes" hidden></div>
       <div class="foot">
         <div class="field"><label class="label" for="cterm">Início da conclusão automática</label><select id="cterm"><option value="compatível com">Exame compatível com…</option><option value="sugestivo de">Exame sugestivo de…</option></select></div>
-        <div class="field"><label class="label" for="concl">Conclusão personalizada (opcional)</label>
-          <textarea id="concl" placeholder="Em branco, usa a conclusão automática."></textarea>
-          <div class="actions"><button class="btn" id="conclBase">Editar a partir da automática</button><button class="btn" id="conclClear">Voltar para automática</button></div></div>
         <label class="check"><input type="checkbox" id="printImg"> Incluir as imagens na impressão</label>
         <div class="field"><label class="label" for="enc">Texto de encerramento (fica salvo neste navegador)</label><textarea id="enc" rows="3"></textarea></div>
         <div class="field"><label class="label" for="ass">Assinatura, uma linha por item (fica salva neste navegador)</label><textarea id="ass" rows="3" placeholder="NOME SOBRENOME&#10;CRMBA 00000 / RQE 00000&#10;OFTALMOLOGISTA"></textarea></div>
@@ -201,12 +199,6 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
     </aside>
   </div>
 
-  <section class="aiout" id="aiOut" aria-label="Laudo da leitura das imagens" hidden>
-    <div class="prev-h"><h2>Laudo da leitura das imagens</h2>
-      <div class="actions"><button class="btn" type="button" id="aiDiscard">Descartar</button><button class="btn" type="button" id="aiPlain">Copiar texto simples</button><button class="copy" type="button" id="aiCopy">Copiar laudo</button></div></div>
-    <div id="aiSheet" contenteditable="true" spellcheck="true" lang="pt-BR" role="textbox" aria-multiline="true" aria-label="Laudo gerado pela leitura"></div>
-    <div class="foot"><p class="hint">Rascunho gerado pela leitura das imagens, no seu modelo. Toque no texto para editar antes de copiar.</p><div id="aiNotes"></div></div>
-  </section>
 </div>
 
 <footer class="credit">Desenvolvido por RJFR</footer>
@@ -286,7 +278,7 @@ const SEC_OF = {};SECTIONS.forEach(s=>s.f.forEach(f=>SEC_OF[f.id]=s));
 const KEY='oct-macula-v2', KEYA='oct-macula-ass', KEYE='oct-macula-enc';
 const ENC_DEF='Sugiro correlacionar os achados deste exame com os demais dados clínicos do paciente para melhor avaliação e conduta.\nDisponível para demais esclarecimentos.';
 function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});return {sel:s,outro:o,fov:'presente',cst:'',ot:'',lim:false};}
-function blank(){return {pac:'',concl:'',cterm:'compatível com',pimg:false,ai:null,eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
+function blank(){return {pac:'',cterm:'compatível com',pimg:false,txt:null,src:'',notes:[],eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
 /* Normaliza dados salvos: descarta achados inexistentes e corrige formatos */
 function fixEye(e){
   const b=blankEye();if(!e||typeof e!=='object')return b;
@@ -302,7 +294,7 @@ function fixEye(e){
 }
 const CTERMS=['compatível com','sugestivo de'];
 let S=blank();
-try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';if(!CTERMS.includes(S.cterm))S.cterm='compatível com';if(!S.ai||typeof S.ai.txt!=='string'||!Array.isArray(S.ai.notes))S.ai=null;}}}catch(e){S=blank();}
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';if(!CTERMS.includes(S.cterm))S.cterm='compatível com';if(typeof S.txt!=='string'){S.txt=null;S.src='';}if(!['ai','manual'].includes(S.src))S.src=S.txt?'manual':'';if(!Array.isArray(S.notes))S.notes=[];delete S.concl;delete S.ai;}}}catch(e){S=blank();}
 let ASS='',ENC=ENC_DEF;
 try{ASS=localStorage.getItem(KEYA)||localStorage.getItem('usg-ocular-ass')||localStorage.getItem('mapeamento-retina-ass')||'';const e=localStorage.getItem(KEYE);if(e!==null)ENC=e;}catch(e){}
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}},300);}
@@ -362,7 +354,7 @@ function lines(){
   const L=[{t:'TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA',b:1},{t:''},{t:'PACIENTE : '+S.pac.trim().toUpperCase(),b:1},{t:''}];
   ['OD','OE'].forEach(e=>{L.push({t:EYE_NAME[e],b:1});eyeBlock(e).forEach(t=>L.push({t,bul:1}));L.push({t:''});});
   L.push({t:'Conclusão',b:1},{t:''});
-  (S.concl.trim()?S.concl.trim().split('\n'):autoConcl()).forEach(t=>L.push({t,bul:t.startsWith('• ')}));
+  autoConcl().forEach(t=>L.push({t,bul:t.startsWith('• ')}));
   ENC.split('\n').map(x=>x.trim()).filter(Boolean).forEach(t=>L.push({t:''},{t}));
   const a=ASS.split('\n').map(x=>x.trim()).filter(Boolean);
   if(a.length){L.push({t:''});a.forEach(t=>L.push({t,b:1,sig:1}));}
@@ -411,7 +403,7 @@ function imgCard(){
   let ai='';
   if(all&&SAMPLE){
     ai=`<div class="ai"><div class="actions"><button class="copy" type="button" id="aiRead"${AI.busy?' disabled':''}>${AI.busy?'Lendo…':'Ler imagem'}</button>${AI.busy?'<button class="btn" type="button" id="aiStop">Parar</button>':''}</div>
-     <p class="hint${AI.err?' bad':''}">${esc(AI.msg||'Analisa todas as imagens carregadas (dos dois olhos) e gera o laudo no seu modelo, no final da página. O formulário acima não é alterado.')}</p></div>`;
+     <p class="hint${AI.err?' bad':''}">${esc(AI.msg||'Analisa todas as imagens carregadas (dos dois olhos) e escreve o laudo no seu modelo, direto no quadro do laudo.')}</p></div>`;
   }else if(all&&!HAS_CLAUDE){
     ai=`<p class="hint">A leitura automática ("Ler imagem") funciona na versão deste laudo publicada no Claude.</p>`;
   }
@@ -438,8 +430,18 @@ function refreshPills(){
   const o=document.querySelector('#sec-ot .pill');if(o)o.outerHTML=pill((eye.ot.trim()?1:0)+(eye.lim?1:0));
   const fp=$('fovPill');if(fp){const c=num(eye.cst);fp.textContent=c!==null?Math.round(c)+' µm':'falta espessura';}
 }
+/* Um só laudo: gerado pelo formulário, ou texto próprio (leitura das imagens / edição à mão) */
+const MODE_TXT={'':'Gerado pelo formulário. Toque no texto para editar.',ai:'Laudo da leitura das imagens. Toque no texto para editar.',manual:'Editado à mão: o formulário não altera mais o texto.'};
+function renderOut(){
+  const o=$('out');
+  if(S.txt===null)o.innerHTML=reportHTML();else if(document.activeElement!==o)o.innerHTML=fmtHTML(S.txt);
+  $('modeTxt').textContent=MODE_TXT[S.txt===null?'':S.src];
+  $('mode').classList.toggle('on',S.txt!==null);$('modeBack').hidden=S.txt===null;
+  const nb=$('aiNotes');nb.hidden=!S.notes.length;
+  nb.innerHTML=S.notes.length?`<div class="notes"><span class="label">Conferência da leitura (não entra no laudo)</span><ul>${S.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`:'';
+}
 function update(){
-  $('out').innerHTML=reportHTML();
+  renderOut();
   ['OD','OE'].forEach(e=>{$('c'+e).textContent=abnormal(S.eyes[e]);});
   $('mstat').textContent='OD '+abnormal(S.eyes.OD)+' · OE '+abnormal(S.eyes.OE);
   save();
@@ -591,7 +593,8 @@ const clean=t=>String(t).trim().replace(/^[•\-–*]\s*/,'').replace(/\.$/,'').
 function aiCompose(r){
   if(!r||typeof r!=='object'||Array.isArray(r))throw {code:'invalid_json'};
   const notes=Array.isArray(r.conferencia)?r.conferencia.map(clean).filter(Boolean).slice(0,8):[];
-  const name=(S.pac.trim()||(typeof r.paciente==='string'?r.paciente.trim():'')).toUpperCase();
+  if(!S.pac.trim()&&typeof r.paciente==='string'&&r.paciente.trim()){S.pac=r.paciente.trim().toUpperCase();$('pac').value=S.pac;}
+  const name=S.pac.trim().toUpperCase();
   const L=['TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA','','PACIENTE : '+name,''];
   let any=false;
   ['OD','OE'].forEach(e=>{
@@ -606,31 +609,26 @@ function aiCompose(r){
   const a=ASS.split('\n').map(x=>x.trim()).filter(Boolean);if(a.length){L.push('');a.forEach(t=>L.push(t));}
   return {txt:L.join('\n'),notes};
 }
-const AI_BOLD=t=>t==='TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA'||/^PACIENTE\s*:/.test(t)||t==='Olho direito'||t==='Olho esquerdo'||t==='Conclusão'||ASS.split('\n').map(x=>x.trim()).filter(Boolean).includes(t);
-function aiHTML(txt){
+const IS_BOLD=t=>t==='TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA'||/^PACIENTE\s*:/.test(t)||t==='Olho direito'||t==='Olho esquerdo'||t==='Conclusão'||ASS.split('\n').map(x=>x.trim()).filter(Boolean).includes(t);
+function fmtHTML(txt){
   return txt.split('\n').map(t=>{
     if(!t.trim())return `<p style="${P}">&nbsp;</p>`;
     const st=P+(t.startsWith('• ')?'padding-left:0.9em;text-indent:-0.9em;':'');
-    return AI_BOLD(t.trim())?`<p style="${st}text-align:left;"><b>${esc(t)}</b></p>`:`<p style="${st}">${esc(t).replace(/^• /,'•&nbsp;')}</p>`;
+    return IS_BOLD(t.trim())?`<p style="${st}text-align:left;"><b>${esc(t)}</b></p>`:`<p style="${st}">${esc(t).replace(/^• /,'•&nbsp;')}</p>`;
   }).join('');
 }
 /* Texto do laudo editado: uma linha por parágrafo (innerText do bloco inteiro duplicaria as quebras) */
 function sheetText(){const out=[];
-  $('aiSheet').childNodes.forEach(n=>{const t=(n.nodeType===3?n.textContent:(n.innerText||'')).replace(/ /g,' ');t.split('\n').forEach(x=>out.push(x.trimEnd()));});
+  $('out').childNodes.forEach(n=>{const t=(n.nodeType===3?n.textContent:(n.innerText||'')).replace(/ /g,' ');t.split('\n').forEach(x=>out.push(x.trimEnd()));});
   return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();}
-function renderAiOut(){
-  const box=$('aiOut');if(!S.ai){box.hidden=true;return;}
-  box.hidden=false;$('aiSheet').innerHTML=aiHTML(S.ai.txt);
-  $('aiNotes').innerHTML=S.ai.notes.length?`<div class="notes"><span class="label">Conferência</span><ul>${S.ai.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`:'';
-}
-let aiEditT;
-$('aiSheet').addEventListener('input',()=>{clearTimeout(aiEditT);aiEditT=setTimeout(()=>{if(S.ai){S.ai.txt=sheetText();save();}},400);});
-$('aiCopy').addEventListener('click',()=>{if(!S.ai)return;S.ai.txt=sheetText();copyRich(S.ai.txt,aiHTML(S.ai.txt),$('aiSheet'));});
-$('aiPlain').addEventListener('click',()=>{if(!S.ai)return;S.ai.txt=sheetText();copyPlainText(S.ai.txt);});
-let aiArm=null;
-$('aiDiscard').addEventListener('click',ev=>{const b=ev.currentTarget;
-  if(!aiArm){b.textContent='Confirmar descarte';b.classList.add('warn');aiArm=setTimeout(()=>{aiArm=null;b.textContent='Descartar';b.classList.remove('warn');},3500);return;}
-  clearTimeout(aiArm);aiArm=null;b.textContent='Descartar';b.classList.remove('warn');S.ai=null;AI.msg='';save();renderAiOut();renderImg();});
+let editT;
+$('out').addEventListener('input',()=>{clearTimeout(editT);editT=setTimeout(()=>{
+  if(S.txt===null)S.src='manual';S.txt=sheetText();renderOut();save();},300);});
+let backArm=null;
+$('modeBack').addEventListener('click',ev=>{const b=ev.currentTarget;
+  if(!backArm){b.textContent=S.src==='ai'?'Descartar a leitura?':'Descartar as edições?';b.classList.add('warn');backArm=setTimeout(()=>{backArm=null;b.textContent='Voltar ao formulário';b.classList.remove('warn');},3500);return;}
+  clearTimeout(backArm);backArm=null;b.textContent='Voltar ao formulário';b.classList.remove('warn');
+  S.txt=null;S.src='';S.notes=[];AI.msg='';update();renderImg();toast('Laudo de volta ao formulário');});
 function aiErr(e){
   const c=e&&e.code;
   if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed','images_unavailable'].includes(c)){SAMPLE=null;return '';}
@@ -649,11 +647,11 @@ async function readImages(){
   aiCtl=new AbortController();let done=false;
   try{
     const r=await SAMPLE.json(buildPrompt(list),{images:list.map(x=>x.blob),modelTier:'complex',signal:aiCtl.signal});
-    S.ai=aiCompose(r);save();done=true;
-    AI.msg='Laudo gerado no final da página.'+(cut?' '+cut+(cut>1?' imagens ficaram':' imagem ficou')+' de fora (limite de '+IMG_LIM.maxCount+' por leitura).':'');
+    {const c=aiCompose(r);S.txt=c.txt;S.src='ai';S.notes=c.notes;}save();done=true;
+    AI.msg='Laudo preenchido com a leitura das imagens.'+(cut?' '+cut+(cut>1?' imagens ficaram':' imagem ficou')+' de fora (limite de '+IMG_LIM.maxCount+' por leitura).':'');
   }catch(e){AI.msg=aiErr(e);AI.err=!!(e&&e.code!=='cancelled');}
-  finally{AI.busy=false;aiCtl=null;renderImg();renderAiOut();
-    if(done){toast('Laudo da leitura pronto');$('aiOut').scrollIntoView({behavior:'smooth',block:'start'});}}
+  finally{AI.busy=false;aiCtl=null;renderImg();update();
+    if(done){toast('Laudo preenchido');if(matchMedia('(max-width:900px)').matches)document.querySelector('.preview').scrollIntoView({behavior:'smooth',block:'start'});}}
 }
 
 /* Visualizador ampliado */
@@ -678,14 +676,12 @@ $('resetAll').addEventListener('click',ev=>{const b=ev.currentTarget;
   if(!armed){b.textContent='Confirmar novo laudo';b.classList.add('warn');armed=setTimeout(()=>{armed=null;b.textContent='Novo laudo';b.classList.remove('warn');},3500);return;}
   clearTimeout(armed);armed=null;b.textContent='Novo laudo';b.classList.remove('warn');
   ['OD','OE'].forEach(e=>{IMGS[e]=[];});
-  S=blank();AI.msg='';bindTech();setEye('OD');renderAiOut();toast('Novo laudo iniciado');});
+  S=blank();AI.msg='';bindTech();setEye('OD');toast('Novo laudo iniciado');});
 
-function bindTech(){$('pac').value=S.pac;$('cterm').value=S.cterm;$('concl').value=S.concl;$('printImg').checked=!!S.pimg;$('ass').value=ASS;$('enc').value=ENC;}
-$('pac').addEventListener('input',e=>{S.pac=e.target.value;update();});
+function bindTech(){$('pac').value=S.pac;$('cterm').value=S.cterm;$('printImg').checked=!!S.pimg;$('ass').value=ASS;$('enc').value=ENC;}
+$('pac').addEventListener('input',e=>{S.pac=e.target.value;
+  if(S.txt!==null)S.txt=S.txt.replace(/^PACIENTE\s*:.*$/m,'PACIENTE : '+S.pac.trim().toUpperCase());update();});
 $('cterm').addEventListener('change',e=>{S.cterm=e.target.value;update();});
-$('concl').addEventListener('input',e=>{S.concl=e.target.value;update();});
-$('conclBase').addEventListener('click',()=>{if(!S.concl.trim()){S.concl=autoConcl().join('\n');$('concl').value=S.concl;update();}$('concl').focus();});
-$('conclClear').addEventListener('click',()=>{S.concl='';$('concl').value='';update();toast('Conclusão automática');});
 $('printImg').addEventListener('change',e=>{S.pimg=e.target.checked;save();});
 $('ass').addEventListener('input',e=>{ASS=e.target.value;try{localStorage.setItem(KEYA,ASS);}catch(x){}update();});
 $('enc').addEventListener('input',e=>{ENC=e.target.value;try{localStorage.setItem(KEYE,ENC);}catch(x){}update();});
@@ -704,9 +700,15 @@ function copyPlainText(txt){
   const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,txt.length);let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();toast(ok?'Texto simples copiado':'Não foi possível copiar');};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>toast('Texto simples copiado'),fb);else fb();
 }
-const copy=()=>copyRich(report(),reportHTML(),$('out'));
+/* Copia o que está no quadro do laudo, inclusive edições ainda não salvas */
+function current(){
+  if(S.txt===null&&document.activeElement===$('out')){S.txt=sheetText();S.src='manual';save();}
+  else if(S.txt!==null){S.txt=sheetText();save();}
+  return S.txt===null?{txt:report(),html:reportHTML()}:{txt:S.txt,html:fmtHTML(S.txt)};
+}
+const copy=()=>{const c=current();copyRich(c.txt,c.html,$('out'));};
 $('copyTop').addEventListener('click',copy);$('copyBot').addEventListener('click',copy);
-$('copyPlain').addEventListener('click',()=>copyPlainText(report()));
+$('copyPlain').addEventListener('click',()=>copyPlainText(current().txt));
 $('seeBot').addEventListener('click',()=>document.querySelector('.preview').scrollIntoView({behavior:'smooth',block:'start'}));
 /* Impressão: imagens opcionais em página separada, por olho */
 function fillPrintImgs(){const box=$('printImgs');const has=IMGS.OD.length||IMGS.OE.length;
@@ -716,7 +718,7 @@ window.addEventListener('beforeprint',fillPrintImgs);
 $('printBtn').addEventListener('click',()=>{fillPrintImgs();window.print();});
 
 if(HAS_CLAUDE){$('printBtn').hidden=true;$('printImg').closest('label').hidden=true;}
-bindTech();setEye(S.eye||'OD');renderAiOut();
+bindTech();setEye(S.eye||'OD');
 </script>
 </body>
 </html>
