@@ -699,12 +699,19 @@ Hemorragia sub-hialoidea e pontos hiperrefletivos:
 Conclusão: Exame sugere quadro de retinopatia diabética
 
 Medida prejudicada:
-"Espessura central: 148 µm (Medida prejudicada devido a interferência)"`;
-function buildPrompt(list){
+"Espessura central: 148 µm (Medida prejudicada devido a interferência)"
+
+Fóvea fina (179 µm), camadas desorganizadas e hipertransmissão para a coroide (itens 4 a 6 substituídos por um só):
+["Interface vítreo-retiniana: Sem alterações","Depressão foveal presente","Espessura central: 179 µm","Evidencia-se desorganização das camadas internas e externa da retina com áreas de atrofia do EPR"]
+Conclusão (só nesse olho): Exame compatível com desorganização das camadas retinianas com atrofia do EPR em olho direito`;
+function buildPrompt(list,th){
+  th=th||{};const thTxt=['OD','OE'].filter(e=>num(th[e])!==null).map(e=>{const v=Math.round(num(th[e]));return (e==='OD'?'olho direito':'olho esquerdo')+' '+v+' µm'+(v<210?' (BAIXA: procure afinamento, atrofia ou desorganização)':v>320?' (ALTA: procure edema, líquido, tração ou membrana)':'');}).join('; ');
   return `Você é o retinólogo do serviço laudando uma tomografia de coerência óptica (OCT) de mácula, no modelo e no estilo exatos do serviço. As imagens anexadas são, na ordem:
 ${list.map((x,i)=>`Imagem ${i+1}: ${x.desc}`).join('\n')}
 Páginas com os dois olhos foram enviadas também divididas ao meio, para mais detalhe (metade esquerda = olho direito; metade direita = olho esquerdo). Use as metades para a morfologia e a página inteira para cabeçalho, qualidade e contexto.
-
+${thTxt?`
+ESPESSURA CENTRAL JÁ LIDA NO ETDRS: ${thTxt}. Nos exames normais do serviço, neste aparelho, a espessura central fica entre cerca de 230 e 300 µm. Espessura fora dessa faixa exige que você encontre e descreva a causa nos B-scans antes de usar frases normais.
+`:''}
 ${GUIDE}
 
 ${EXAMPLES}
@@ -715,6 +722,8 @@ COMO RESPONDER
 3. "paciente": nome do cabeçalho em ordem direta (o aparelho mostra SOBRENOME NOME), em maiúsculas. "data": data do exame em dd/mm/aaaa, ou "".
 4. "conferencia": 2 a 6 itens curtos para o laudador conferir (não entram no laudo): qualidade (SQI, SSI, n/50) de cada olho, segmentação com falha, achados duvidosos, etiologia inferida, datas diferentes entre páginas.
 5. Olho que não aparece em nenhuma imagem: null na lista e na análise.
+6. Coerência: a conclusão só cita achados que estão nos itens, no formato dos padrões (começando por "Exame compatível com", "Exame sugestivo de", "Exame sugere quadro de" ou "Exame dentro da normalidade"). Não descreva olho normal nem medidas na conclusão. Se um achado é importante o bastante para a conclusão, ele tem de aparecer no item correspondente.
+7. O cabeçalho do aparelho costuma trazer só um sobrenome e um nome; não complete o nome.
 
 Responda com apenas um objeto JSON, sem texto antes ou depois:
 {"paciente": "", "data": "", "analise": {"OD": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}, "OE": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}}, "OD": ["itens"], "OE": ["itens"], "conclusao": "", "conferencia": []}`;
@@ -724,7 +733,7 @@ const clean=t=>String(t).trim().replace(/^[•\-–*]\s*/,'').replace(/\.$/,'').
 function aiCompose(r){
   if(!r||typeof r!=='object'||Array.isArray(r))throw {code:'invalid_json'};
   const notes=Array.isArray(r.conferencia)?r.conferencia.map(clean).filter(Boolean).slice(0,8):[];
-  if(!S.pac.trim()&&typeof r.paciente==='string'&&r.paciente.trim()){S.pac=r.paciente.trim().toUpperCase();$('pac').value=S.pac;}
+  if(!S.pac.trim()&&typeof r.paciente==='string'&&r.paciente.trim()){S.pac=r.paciente.trim().toUpperCase();$('pac').value=S.pac;notes.push('Nome tirado do cabeçalho do aparelho, que costuma trazer só um nome e um sobrenome. Confira o nome completo.');}
   if(!S.data.trim()&&typeof r.data==='string'&&/^\d{2}\/\d{2}\/\d{4}$/.test(r.data.trim())){S.data=r.data.trim();$('data').value=S.data;}
   const name=S.pac.trim().toUpperCase();
   const L=['TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA','','PACIENTE : '+name];
@@ -828,6 +837,16 @@ function applyThickness(r,th,notes){
     if(prev&&+prev[1]!==v)notes.push(EYE_NAME[e]+': espessura central conferida no ETDRS ('+v+' µm); a leitura geral tinha indicado '+prev[1]+' µm.');
     S.eyes[e].cst=String(v);});
 }
+/* Avisos quando o laudo gerado contradiz a espessura ou a conclusão (não altera o texto) */
+const NORMAL_RX=[/^Camadas internas da retina se encontram dentro da normalidade/i,/^Retina neurossensorial sem alterações/i,/^(Complexo )?EPR-Coroide sem alterações/i];
+function checkCoherence(r,th,notes){
+  ['OD','OE'].forEach(e=>{const it=Array.isArray(r[e])?r[e].map(String):null;if(!it)return;const n=num(th[e]);
+    const allNormal=NORMAL_RX.every(rx=>it.some(t=>rx.test(clean(t))));
+    if(n!==null&&allNormal&&(n<210||n>320))notes.unshift(EYE_NAME[e]+': espessura central '+(n<210?'baixa':'alta')+' ('+Math.round(n)+' µm) com camadas descritas como normais. Revise os B-scans antes de assinar.');});
+  const cc=String(r.conclusao||'');
+  if(cc&&!/^Exame (compatível|sugestivo|sugere|dentro|pode)/i.test(clean(cc)))notes.push('Conclusão fora do padrão do serviço; revise a redação.');
+  if(/afinamento|atrofia|desorganiza/i.test(cc)&&!['OD','OE'].some(e=>Array.isArray(r[e])&&r[e].some(t=>/afinamento|atrofia|desorganiza/i.test(String(t)))))notes.unshift('A conclusão cita afinamento ou atrofia que não aparece nos itens; revise.');
+}
 async function readImages(){
   if(AI.busy)return;
   /* Botão sempre visível: fora do Claude, explica e oferece o link da versão com leitura */
@@ -857,9 +876,12 @@ async function readImages(){
   AI.msg='Analisando '+list.length+(list.length>1?' imagens':' imagem')+'. Pode levar 1 a 2 minutos.';renderImg();
   aiCtl=new AbortController();let done=false;
   try{
-    const [r,th]=await Promise.all([SAMPLE.json(buildPrompt(list),{images:list.map(x=>x.blob),modelTier:'complex',signal:aiCtl.signal}),readThickness(crops,aiCtl.signal)]);
-    const thNotes=[];if(r&&typeof r==='object')applyThickness(r,th,thNotes);
-    {const c=aiCompose(r);S.txt=c.txt;S.src='ai';S.notes=c.notes.concat(thNotes);S.ana=c.ana;}save();done=true;
+    if(crops.length){AI.msg='Lendo a espessura central no ETDRS…';renderImg();}
+    const th=await readThickness(crops,aiCtl.signal);
+    AI.msg='Analisando '+list.length+(list.length>1?' imagens':' imagem')+'. Pode levar 1 a 2 minutos.';renderImg();
+    const r=await SAMPLE.json(buildPrompt(list,th),{images:list.map(x=>x.blob),modelTier:'complex',signal:aiCtl.signal});
+    const thNotes=[];if(r&&typeof r==='object'){applyThickness(r,th,thNotes);checkCoherence(r,th,thNotes);}
+    {const c=aiCompose(r);S.txt=c.txt;S.src='ai';S.notes=thNotes.concat(c.notes);S.ana=c.ana;}save();done=true;
     AI.msg='Laudo preenchido com a leitura das imagens.'+(cut?' '+cut+(cut>1?' imagens ficaram':' imagem ficou')+' de fora (limite de '+max+' por leitura).':'');
   }catch(e){AI.msg=aiErr(e);AI.err=!!(e&&e.code!=='cancelled');}
   finally{AI.busy=false;aiCtl=null;renderImg();update();
