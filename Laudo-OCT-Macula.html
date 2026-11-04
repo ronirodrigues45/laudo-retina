@@ -96,6 +96,7 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 .dz.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .th{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#000;aspect-ratio:4/3}
+.th .err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;color:#E3E9ED;font-size:.8rem}
 .th img{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-in}
 .th .x{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;line-height:1;font-size:15px}
 .lb{position:fixed;inset:0;z-index:30;background:rgba(5,8,10,.94);display:flex;flex-direction:column}
@@ -390,7 +391,7 @@ function fovCard(){
 function imgCard(){
   const L=IMGS[S.eye];
   return `<section class="sec" id="sec-img"><div class="sec-h"><h2>Imagens do ${S.eye==='OD'?'olho direito':'olho esquerdo'}</h2>${pill(0,L.length?L.length+(L.length>1?' imagens':' imagem'):'nenhuma')}</div>
-   <div class="drop"><label class="dz" id="dz">Toque para escolher ou arraste as imagens do OCT aqui<input type="file" id="fileIn" accept="image/*" multiple hidden></label>
+   <div class="drop"><label class="dz" id="dz">Toque para escolher ou arraste as imagens do OCT aqui<input type="file" id="fileIn" accept="image/*,.heic,.heif" multiple hidden></label>
    ${L.length?`<div class="thumbs">${L.map((x,i)=>`<div class="th"><img src="${x.url}" alt="${esc(x.name)}" data-view="${i}"><button class="x" type="button" data-rm="${i}" aria-label="Remover imagem">×</button></div>`).join('')}</div>`:''}
    <p class="hint">As imagens ficam só nesta tela: não são salvas nem enviadas, e não entram no texto copiado.</p></div></section>`;
 }
@@ -427,7 +428,7 @@ secs.addEventListener('click',ev=>{
   const eye=S.eyes[S.eye];
   const im=ev.target.closest('[data-view]');if(im){openLB(+im.dataset.view);return;}
   const b=ev.target.closest('button');if(!b)return;
-  if(b.dataset.rm!==undefined){const i=+b.dataset.rm;URL.revokeObjectURL(IMGS[S.eye][i].url);IMGS[S.eye].splice(i,1);renderSections();return;}
+  if(b.dataset.rm!==undefined){const i=+b.dataset.rm;IMGS[S.eye].splice(i,1);renderSections();return;}
   if(b.dataset.lim){eye.lim=!eye.lim;renderSections();update();refocus('button[data-lim]');return;}
   if(b.dataset.fov){eye.fov=b.dataset.fov;renderSections();update();refocus(`button[data-fov="${b.dataset.fov}"]`);return;}
   if(b.dataset.sf){const v=eye.sel[b.dataset.s][b.dataset.sf],k=b.dataset.k,i=v.s.indexOf(k);if(i>=0)v.s.splice(i,1);else v.s.push(k);
@@ -450,7 +451,19 @@ secs.addEventListener('input',ev=>{const t=ev.target,eye=S.eyes[S.eye];
 secs.addEventListener('dragover',ev=>{const z=ev.target.closest('#dz');if(!z)return;ev.preventDefault();z.classList.add('over');});
 secs.addEventListener('dragleave',ev=>{const z=ev.target.closest('#dz');if(z)z.classList.remove('over');});
 secs.addEventListener('drop',ev=>{const z=ev.target.closest('#dz');if(!z)return;ev.preventDefault();addFiles(ev.dataTransfer.files);});
-function addFiles(files){const e=S.eye;[...files].filter(f=>f.type.startsWith('image/')).forEach(f=>IMGS[e].push({url:URL.createObjectURL(f),name:f.name}));renderSections();}
+/* Lê como data URL (funciona também em visualizadores que bloqueiam blob:) */
+function addFiles(files){const e=S.eye;
+  const list=[...files].filter(f=>f.type.startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|heic|heif|tiff?)$/i.test(f.name));
+  if(!list.length){toast('Nenhuma imagem reconhecida');return;}
+  let left=list.length;
+  list.forEach(f=>{const r=new FileReader();
+    r.onload=()=>{IMGS[e].push({url:r.result,name:f.name});if(--left===0)renderSections();};
+    r.onerror=()=>{toast('Não foi possível ler '+f.name);if(--left===0)renderSections();};
+    r.readAsDataURL(f);});
+}
+/* Imagem que o navegador não consegue exibir (ex.: HEIC fora do Safari) */
+document.addEventListener('error',ev=>{const t=ev.target;if(t.tagName==='IMG'&&t.closest('.th')&&!t.dataset.failed){t.dataset.failed=1;t.style.visibility='hidden';
+  const m=document.createElement('span');m.className='err';m.textContent='Formato não exibido neste navegador. Exporte como JPG ou PNG.';t.parentNode.appendChild(m);}},true);
 
 /* Visualizador ampliado */
 let lbI=0;
@@ -473,7 +486,7 @@ let armed=null;
 $('resetAll').addEventListener('click',ev=>{const b=ev.currentTarget;
   if(!armed){b.textContent='Confirmar novo laudo';b.classList.add('warn');armed=setTimeout(()=>{armed=null;b.textContent='Novo laudo';b.classList.remove('warn');},3500);return;}
   clearTimeout(armed);armed=null;b.textContent='Novo laudo';b.classList.remove('warn');
-  ['OD','OE'].forEach(e=>{IMGS[e].forEach(x=>URL.revokeObjectURL(x.url));IMGS[e]=[];});
+  ['OD','OE'].forEach(e=>{IMGS[e]=[];});
   S=blank();bindTech();setEye('OD');toast('Novo laudo iniciado');});
 
 function bindTech(){$('pac').value=S.pac;$('cterm').value=S.cterm;$('concl').value=S.concl;$('printImg').checked=!!S.pimg;$('ass').value=ASS;$('enc').value=ENC;}
