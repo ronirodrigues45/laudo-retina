@@ -554,6 +554,9 @@ let pdfLib=null;
 /* pdf.js: a página roda num ambiente que não permite "worker" de outro domínio. Por isso o processador
    do PDF é carregado como script comum e roda na própria página, sem o aviso "fake worker". */
 function loadScript(src){return new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=src;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});}
+/* Silencia o aviso interno do pdf.js sobre o modo sem worker (não é erro; o PDF abre normalmente) */
+(()=>{const quiet=a=>typeof a[0]==='string'&&/Setting up fake worker|worker has been disabled/i.test(a[0]);
+  ['log','warn','info'].forEach(k=>{const o=console[k].bind(console);console[k]=(...a)=>{if(!quiet(a))o(...a);};});})();
 function loadPdfJs(){
   if(pdfLib)return pdfLib;
   pdfLib=(async()=>{await loadScript(PDFJS+'pdf.min.js');await loadScript(PDFJS+'pdf.worker.min.js');
