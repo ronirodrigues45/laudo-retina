@@ -817,8 +817,10 @@ Responda só com JSON: {"OD": número ou null, "OE": número ou null}. Use null 
 /* Aplica o valor do ETDRS no item de espessura de cada olho, mantendo "(Medida prejudicada…)" se houver */
 function applyThickness(r,th,notes){
   ['OD','OE'].forEach(e=>{const n=num(th[e]);if(n===null||!Array.isArray(r[e]))return;const v=Math.round(n);
-    const i=r[e].findIndex(t=>/^\W*Espessura central/i.test(String(t)));
-    if(i<0)return;
+    let i=r[e].findIndex(t=>/^\W*Espessura central/i.test(String(t)));
+    if(i<0){/* item ausente: entra logo após o da depressão foveal (não em buraco macular ou tração) */
+      const j=r[e].findIndex(t=>/depressão foveal|perda de centralização/i.test(String(t)));
+      if(j<0)return;r[e].splice(j+1,0,'Espessura central: ___ µm');i=j+1;}
     const old=String(r[e][i]),prev=old.match(/(\d{2,4})\s*µ?m/),suf=(old.match(/\(Medida prejudicada[^)]*\)/i)||[''])[0];
     r[e][i]='Espessura central: '+v+' µm'+(suf?' '+suf:'');
     if(prev&&+prev[1]!==v)notes.push(EYE_NAME[e]+': espessura central conferida no ETDRS ('+v+' µm); a leitura geral tinha indicado '+prev[1]+' µm.');
