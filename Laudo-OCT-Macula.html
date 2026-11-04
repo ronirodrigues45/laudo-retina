@@ -168,6 +168,10 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
     <main>
       <section class="tech" aria-label="Dados do exame">
         <div class="field"><label class="label" for="pac">Paciente</label><input type="text" id="pac" placeholder="Nome do paciente" autocomplete="off"></div>
+        <div class="row">
+          <div class="field"><label class="label" for="data">Data do exame (opcional)</label><input type="text" id="data" inputmode="numeric" placeholder="dd/mm/aaaa" autocomplete="off"></div>
+          <div class="field"><label class="label" for="olhos">Olhos examinados</label><select id="olhos"><option value="AO">Ambos</option><option value="OD">Só olho direito</option><option value="OE">Só olho esquerdo</option></select></div>
+        </div>
       </section>
 
       <div class="eyebar">
@@ -215,73 +219,84 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 </div>
 
 <script>
-/* Cada achado:
-   t = frase da descrição, c = frase da conclusão (null = não entra na conclusão)
-   g = opções de um seletor [rótulo, inserção em t, inserção em c] ({g} marca o ponto; sem {g}, entra no fim)
-   s = complementos opcionais [chave, rótulo, texto em t, texto em c], unidos por sp (descrição) e scp (conclusão)
-   n = campo numérico em µm, com texto da descrição e função da conclusão */
+/* Catálogo de achados, com as frases dos laudos do serviço (guia-laudo-oct.md).
+   t = frase do item; c = termo da conclusão (null = não entra); cg = conclusão por opção do seletor
+   g = seletor [rótulo, inserção em t, inserção em c]; s = complementos [chave, rótulo, texto em t, texto em c]
+   n = medida em µm ({n} marca o ponto); sec2 = só entra na conclusão se não houver achado principal no olho
+   alone = frase quando é o único achado da interface; hial = estado da hialoide (une-se ao seguinte com "com")
+   own = item próprio após a interface; take = substitui itens ('all' todos, '2-6', '4-6', '5-6'); m56 = ocupa os itens 5 e 6 */
 const IVR='Interface vítreo-retiniana: ';
 const SECTIONS = [
  {id:'ivr', name:'Interface vítreo-retiniana', normal:'Interface vítreo-retiniana: Sem alterações', f:[
-  {id:'dvp', l:'DVP parcial perifoveal', pre:IVR, t:'descolamento parcial do vítreo posterior perifoveal, sem tração sobre a superfície retiniana', c:null},
-  {id:'vma', l:'Adesão vitreomacular', pre:IVR, t:'adesão vitreomacular, sem alteração do contorno foveal', c:null},
-  {id:'vmt', l:'Tração vitreomacular', pre:IVR, t:'adesão vítrea persistente na região macular, com tração sobre a superfície retiniana e alteração do contorno foveal{g}', c:'tração vitreomacular{g}',
+  {id:'hpar', l:'Hialoide parcialmente aderida', hial:1, t:'hialoide posterior parcialmente aderida', c:null},
+  {id:'hade', l:'Hialoide aderida', hial:1, t:'hialoide aderida', alone:'Sem alterações com hialoide aderida', c:null},
+  {id:'hdes', l:'Hialoide descolada', hial:1, t:'hialoide posterior descolada', c:null},
+  {id:'hnv', l:'Não visualizo hialoide', hial:1, t:'Não visualizo hialoide posterior', c:null},
+  {id:'mer', l:'Membrana epirretiniana', t:'Hiperrefletividade linear pré retiniana{g} compatível com membrana epirretiniana', c:'membrana epirretiniana',
+   g:[['Padrão','',''],['Discreta',' discreta',''],['Tênue',' tênue','']]},
+  {id:'vmt', l:'Tração vitreomacular', t:'adesão vítrea persistente na região macular, com tração sobre a superfície retiniana e alteração do contorno foveal{g}', c:'tração vitreomacular{g}',
    g:[['Extensão não especificada','',''],['Focal (≤ 1500 µm)',', de configuração focal (extensão da adesão ≤ 1500 µm)',' focal'],['Ampla (> 1500 µm)',', de configuração ampla (extensão da adesão > 1500 µm)',' ampla']]},
-  {id:'mer', l:'Membrana epirretiniana', t:'hiperrefletividade linear pré-retiniana compatível com membrana epirretiniana', c:'membrana epirretiniana',
-   s:[['preg','Pregueamento','pregueamento da superfície retiniana',''],['dist','Distorção do contorno foveal','distorção do contorno foveal',''],['eifl','EIFL','camadas internas foveais ectópicas (EIFL)','camadas internas foveais ectópicas']], sp:', com ', scp:' com '},
-  {id:'phm', l:'Pseudoburaco macular', t:'membrana epirretiniana com bordas foveais verticalizadas e configuração em "U", sem perda de tecido retiniano, compatível com pseudoburaco macular', c:'pseudoburaco macular'},
-  {id:'lmh', l:'Buraco macular lamelar', t:'defeito parcial e irregular da retina interna foveal, com bordas solapadas e retina externa preservada, compatível com buraco macular lamelar', c:'buraco macular lamelar',
-   s:[['lhep','Proliferação epirretiniana (LHEP)','proliferação epirretiniana associada (LHEP)','']], sp:', com ', scp:''},
-  {id:'bm', l:'Buraco macular de espessura total', t:'defeito de espessura total da retina neurossensorial foveal, compatível com buraco macular de espessura total', c:'buraco macular de espessura total',
-   n:{l:'Diâmetro mínimo', t:', com diâmetro mínimo de {n} µm', c:n=>n<=250?' de tamanho pequeno':n<=400?' de tamanho médio':' de tamanho grande'},
-   s:[['cis','Bordas císticas','espaços cistoides nas bordas',''],['vmt','Tração vitreomacular','tração vitreomacular associada','tração vitreomacular'],['oper','Opérculo','opérculo sobre o buraco','']], sp:', com ', scp:' com '}
+  {id:'hsh', l:'Hemorragia sub-hialoidea', t:'Presença de pontos hiperrefletivos entre a hialoide e a retina sugestivo de hemorragia subhialoidea', c:null},
+  {id:'oleo', l:'Óleo de silicone', t:'linha hiperrefletiva sugestiva de óleo de silicone em cavidade vítrea', c:null},
+  {id:'phm', l:'Pseudoburaco macular', t:'Hiperrefletividade linear pré retiniana compatível com membrana epirretiniana, com bordas foveais verticalizadas, compatível com pseudoburaco macular', c:'pseudoburaco macular'},
+  {id:'lmh', l:'Buraco macular lamelar', own:1, t:'Presença de defeito parcial da retina interna foveal, com bordas solapadas e retina externa preservada, compatível com buraco macular lamelar', c:'buraco macular lamelar'},
+  {id:'bm', l:'Buraco macular de espessura total', own:1, take:'2-6', t:'Presença de buraco macular de espessura total, com descontinuidade completa da retina neurossensorial na fóvea{n}', c:'buraco macular de espessura total',
+   n:{l:'Diâmetro', t:' medindo cerca de {n} µm', c:()=>''},
+   s:[['cis','Bordos com cistos','. Bordos do buraco apresentam cistos intrarretinianos com bordos elevados','']], sp:'', scp:''},
+  {id:'trd', l:'Descolamento tracional', own:1, take:'all', t:'Hialoide aderida com tração vítreo retiniana em vários pontos causando perda da depressão foveal e desorganização completa das camadas retinianas internas e externa', c:'descolamento de retina tracional'}
  ]},
  {id:'int', name:'Camadas internas da retina', normal:'Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado', f:[
-  {id:'ed', l:'Cistos / edema macular', t:'presença de cistos intrarretinianos compatíveis com edema macular', c:'edema macular{g}',
-   g:[['Sem etiologia na conclusão','',''],['Diabético','',' diabético'],['Por oclusão venosa','',' secundário a oclusão venosa retiniana'],['Pós-operatório','',' cistoide pós-operatório'],['Uveítico','',' uveítico']]},
-  {id:'hrf', l:'Pontos hiperrefletivos', t:'presença de pontos hiperrefletivos{g}', c:null,
-   g:[['Sem interpretação','',''],['Exsudatos/hemorragias',' que podem corresponder a exsudatos/hemorragias',''],['Exsudatos duros',' compatíveis com exsudatos duros','']]},
-  {id:'dril', l:'DRIL', t:'desorganização das camadas internas da retina (DRIL)', c:null},
-  {id:'afin', l:'Afinamento', t:'afinamento das camadas internas da retina', c:'afinamento da retina interna'},
-  {id:'isq', l:'Isquemia interna', t:'hiperrefletividade e espessamento das camadas internas da retina, sugestivos de isquemia retiniana interna', c:'isquemia retiniana interna'},
-  {id:'pamm', l:'PAMM', t:'faixa hiperrefletiva na camada nuclear interna, sugestiva de maculopatia média aguda paracentral (PAMM)', c:'maculopatia média aguda paracentral (PAMM)'},
-  {id:'sq', l:'Retinosquise', t:'separação entre as camadas da retina neurossensorial, compatível com retinosquise{g}', c:'retinosquise macular{g}',
+  {id:'ed', l:'Cistos / edema macular', t:'Presença de cistos intra-retinianos compatíveis com edema macular', c:'edema macular{g}',
+   g:[['Sem etiologia na conclusão','',''],['Diabético','',' diabético'],['Oclusão de veia central','',' secundário a oclusão de veia central da retina'],['Oclusão de ramo venoso','',' secundário a oclusão de ramo venoso da retina'],['Pós-operatório','',' cistoide pós-operatório'],['Uveítico','',' uveítico']],
+   s:[['dsr','Com líquido sub-retiniano',' e lâmina de líquido subretiniano compatível com descolamento seroso de retina','']], sp:'', scp:''},
+  {id:'cisf', l:'Cisto foveal isolado', t:'Presença de cisto intra-retiniano em região foveal', c:null},
+  {id:'hrf', l:'Pontos hiperrefletivos', t:'Presença de pontos hiperrefletivos {g}', c:null,
+   g:[['Exsudatos/hemorragias','que podem corresponder a exsudatos/hemorragias',''],['Com sombreamento (exsudatos)','com sombreamento posterior que podem corresponder a exsudatos','']]},
+  {id:'deso', l:'Desorganização com atrofia', take:'4-6', sec2:1, t:'Evidencia-se desorganização das camadas internas e externa da retina com áreas de atrofia do EPR', c:'desorganização das camadas retinianas com atrofia do EPR'},
+  {id:'dril', l:'DRIL', t:'Desorganização das camadas internas da retina (DRIL)', c:null},
+  {id:'isq', l:'Isquemia interna', t:'Hiperrefletividade e espessamento das camadas internas da retina, sugestivos de isquemia retiniana interna', c:'isquemia retiniana interna'},
+  {id:'pamm', l:'PAMM', t:'Faixa hiperrefletiva na camada nuclear interna, sugestiva de maculopatia média aguda paracentral (PAMM)', c:'maculopatia média aguda paracentral (PAMM)'},
+  {id:'sq', l:'Retinosquise', t:'Separação entre as camadas da retina neurossensorial, compatível com retinosquise{g}', c:'retinosquise macular{g}',
    g:[['Sem especificar','',''],['Foveosquise miópica',', em olho míope',' (foveosquise miópica)']]}
  ]},
  {id:'ext', name:'Retina neurossensorial', normal:'Retina neurossensorial sem alterações', f:[
-  {id:'afov', l:'Afinamento foveal', t:'afinamento da retina neurossensorial em região foveal', c:'afinamento foveal'},
-  {id:'espt', l:'Espessamento por tração', t:'retina neurossensorial com espessamento e deformação do perfil foveal associados à tração vitreomacular', c:null},
-  {id:'esp', l:'Espessamento', t:'retina neurossensorial com espessamento', c:null},
-  {id:'fsr', l:'Fluido sub-retiniano', t:'presença de fluido sub-retiniano', c:'fluido sub-retiniano'},
-  {id:'ze', l:'Interrupção da zona elipsoide', t:'interrupção {g} da zona elipsoide em região macular', c:'interrupção {g} da zona elipsoide',
-   g:[['Focal','focal','focal'],['Difusa','difusa','difusa']]},
-  {id:'mle', l:'Interrupção da MLE', t:'interrupção da membrana limitante externa', c:'interrupção da membrana limitante externa'},
-  {id:'shrm', l:'Material hiperrefletivo sub-retiniano', t:'material hiperrefletivo sub-retiniano', c:'material hiperrefletivo sub-retiniano'},
-  {id:'sdd', l:'Pseudodrusas reticulares', t:'depósitos drusenoides sub-retinianos (pseudodrusas reticulares)', c:'pseudodrusas reticulares'},
-  {id:'vit', l:'Lesão viteliforme', t:'material hiperrefletivo sub-retiniano em região foveal, sugestivo de lesão viteliforme', c:'lesão viteliforme'},
-  {id:'tub', l:'Tubulações', t:'tubulações da retina externa', c:null}
+  {id:'fsr', l:'Líquido sub-retiniano isolado', t:'Presença de líquido subretiniano compatível com descolamento seroso de retina', c:'descolamento seroso de retina'},
+  {id:'espt', l:'Espessamento por tração', t:'Retina neurossensorial com espessamento e deformação do perfil foveal associados à tração vitreomacular', c:null},
+  {id:'afov', l:'Afinamento foveal', t:'Afinamento da retina neurossensorial em região foveal', c:'afinamento foveal', sec2:1},
+  {id:'ze', l:'Interrupção da zona elipsoide', t:'Interrupção {g} da zona elipsoide em região macular', c:null,
+   g:[['Focal','focal',''],['Difusa','difusa','']]},
+  {id:'imp', l:'Impraticável avaliar (sombra)', take:'5-6', t:'Impraticável avaliação de retina externa e EPR devido a interferência de sinal', c:null},
+  {id:'sdd', l:'Pseudodrusas reticulares', t:'Depósitos drusenoides sub-retinianos sugestivos de pseudodrusas reticulares', c:'pseudodrusas reticulares'},
+  {id:'vit', l:'Lesão viteliforme', t:'Material hiperrefletivo sub-retiniano em região foveal, sugestivo de lesão viteliforme', c:'lesão viteliforme'}
  ]},
- {id:'epr', name:'Complexo EPR-coroide', normal:'Complexo EPR-Coroide sem alterações', f:[
-  {id:'dru', l:'Drusas', t:'elevações do epitélio pigmentado da retina compatíveis com drusas', c:'drusas',
-   s:[['hrf','Pontos hiperrefletivos sobrejacentes','pontos hiperrefletivos intrarretinianos sobrejacentes',''],['hipo','Núcleo hiporrefletivo','núcleo hiporrefletivo','']], sp:', com ', scp:''},
-  {id:'deps', l:'DEP seroso', t:'descolamento do epitélio pigmentado da retina de conteúdo hiporrefletivo homogêneo, compatível com descolamento seroso do EPR', c:'descolamento seroso do epitélio pigmentado da retina'},
-  {id:'depfv', l:'DEP fibrovascular', t:'descolamento do epitélio pigmentado da retina de conteúdo heterogêneo e refletividade moderada, sugestivo de descolamento fibrovascular', c:'descolamento fibrovascular do EPR, sugestivo de neovascularização macular tipo 1'},
-  {id:'dupla', l:'Sinal da dupla camada', t:'elevação rasa e irregular do epitélio pigmentado da retina, com sinal da dupla camada', c:'elevação rasa e irregular do EPR (sinal da dupla camada)'},
-  {id:'atr', l:'Atrofia do EPR', t:'perda do epitélio pigmentado da retina com hipertransmissão do sinal para a coroide{g}', c:'atrofia do epitélio pigmentado da retina{g}',
-   g:[['Sem especificar','',''],['cRORA',', associada a degeneração da retina externa, compatível com atrofia completa do EPR e da retina externa (cRORA)',' e da retina externa (cRORA)']]},
-  {id:'paq', l:'Paquicoroide', t:'espessamento da coroide com dilatação dos vasos da camada de Haller', c:'espessamento coroideo, sugestivo do espectro paquicoroide'},
-  {id:'cic', l:'Cicatriz disciforme', t:'lesão hiperrefletiva compacta sub-retiniana, compatível com cicatriz fibrótica', c:'cicatriz disciforme'}
+ {id:'epr', name:'Fotorreceptores-EPR e coroide', normal:'Complexo EPR-Coroide sem alterações', f:[
+  {id:'dru', l:'Drusas', m56:1, t:'{g}', c:'drusas maculares',
+   g:[['Padrão','O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula o que sugere drusas',''],['Discretas','Discreta irregularidade a nível de segmento externo dos fotorreceptores-EPR o que sugere drusas','']]},
+  {id:'mnv', l:'Membrana neovascular', m56:1, t:'Irregularidade na linha de fotorreceptores-EPR em região foveal associado a hiperrefletividade subretiniana compatível com membrana neovascular subretiniana{g}',
+   cg:['membrana neovascular subretiniana','membrana neovascular subretiniana em atividade','membrana neovascular subretiniana em atividade','cicatriz disciforme'],
+   g:[['Atividade não definida','',''],['Ativa: material hiporrefletivo',' com presença de material hiporrefletivo subretiniano sugestivo de atividade de membrana',''],['Ativa: líquido sub-retiniano',' apresentando líquido subretiniano',''],['Cicatricial',' de aspecto cicatricial com áreas de atrofia do EPR','']]},
+  {id:'atr', l:'Atrofia do EPR', m56:1, sec2:1, t:'O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula com áreas de atrofia do EPR', c:'atrofia do EPR',
+   s:[['rext','Inclui retina externa',' e retina externa','']], sp:'', scp:''},
+  {id:'deps', l:'DEP seroso', t:'Descolamento do EPR de conteúdo hiporrefletivo homogêneo, compatível com descolamento seroso do EPR', c:'descolamento seroso do EPR'},
+  {id:'depfv', l:'DEP fibrovascular', t:'Descolamento do EPR de conteúdo heterogêneo, sugestivo de descolamento fibrovascular', c:'descolamento fibrovascular do EPR'},
+  {id:'paq', l:'Paquicoroide', t:'Espessamento da coroide com dilatação dos vasos da camada de Haller', c:'espessamento coroideo, sugestivo do espectro paquicoroide'}
+ ]},
+ {id:'dx', name:'Conclusão: diagnóstico pelo padrão', normal:'', f:[
+  {id:'rd', l:'Retinopatia diabética', t:null, c:'quadro de retinopatia diabética'},
+  {id:'mio', l:'Degeneração miópica', t:null, c:'degeneração miópica'}
  ]}
 ];
-const FOV = [['presente','Presente'],['retificada','Retificada'],['ausente','Ausente'],['invertida','Invertida (convexa)'],['alterada','Alterada']];
+const FOV = [['presente','Presente','Depressão foveal presente'],['alterada','Alterada','Depressão foveal alterada'],['irregular','Irregular','Depressão foveal irregular'],['retificada','Retificada','Depressão foveal retificada'],['ausente','Ausente','Depressão foveal ausente'],['perda','Perda','Perda da depressão foveal'],['desc','Descentralizado','Exame com perda de centralização em região foveal']];
 /* Achados que não coexistem no mesmo olho */
-const EXCL = {dvp:['vma','vmt'],vma:['dvp','vmt'],vmt:['dvp','vma'],phm:['lmh','bm'],lmh:['phm','bm'],bm:['phm','lmh'],deps:['depfv'],depfv:['deps']};
+const HIAL=['hpar','hade','hdes','hnv'];
+const EXCL = {phm:['lmh','bm','mer'],lmh:['phm','bm'],bm:['phm','lmh'],deps:['depfv'],depfv:['deps'],vmt:HIAL,mer:['phm']};
+HIAL.forEach(h=>EXCL[h]=HIAL.filter(x=>x!==h).concat('vmt'));
 const SEC_OF = {};SECTIONS.forEach(s=>s.f.forEach(f=>SEC_OF[f.id]=s));
 
-const KEY='oct-macula-v2', KEYA='oct-macula-ass', KEYE='oct-macula-enc';
+const KEY='oct-macula-v3', KEYA='oct-macula-ass', KEYE='oct-macula-enc';
 const ENC_DEF='Sugiro correlacionar os achados deste exame com os demais dados clínicos do paciente para melhor avaliação e conduta.\nDisponível para demais esclarecimentos.';
-function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});return {sel:s,outro:o,fov:'presente',cst:'',ot:'',lim:false};}
-function blank(){return {pac:'',cterm:'compatível com',pimg:false,txt:null,src:'',notes:[],ana:{},eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
+function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});return {sel:s,outro:o,fov:'presente',cst:'',cstp:false,ot:'',lim:false};}
+function blank(){return {pac:'',data:'',olhos:'AO',cterm:'compatível com',pimg:false,txt:null,src:'',notes:[],ana:{},eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
 /* Normaliza dados salvos: descarta achados inexistentes e corrige formatos */
 function fixEye(e){
   const b=blankEye();if(!e||typeof e!=='object')return b;
@@ -292,12 +307,12 @@ function fixEye(e){
       b.sel[sec.id][f.id]={g,s,n:typeof v.n==='string'?v.n:''};});
     b.outro[sec.id]=e.outro&&typeof e.outro[sec.id]==='string'?e.outro[sec.id]:'';});
   if(FOV.some(x=>x[0]===e.fov))b.fov=e.fov;
-  if(typeof e.cst==='string')b.cst=e.cst;b.lim=e.lim===true;if(typeof e.ot==='string')b.ot=e.ot;
+  if(typeof e.cst==='string')b.cst=e.cst;b.cstp=e.cstp===true;b.lim=e.lim===true;if(typeof e.ot==='string')b.ot=e.ot;
   return b;
 }
 const CTERMS=['compatível com','sugestivo de'];
 let S=blank();
-try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';if(!CTERMS.includes(S.cterm))S.cterm='compatível com';if(typeof S.txt!=='string'){S.txt=null;S.src='';}if(!['ai','manual'].includes(S.src))S.src=S.txt?'manual':'';if(!Array.isArray(S.notes))S.notes=[];if(!S.ana||typeof S.ana!=='object'||Array.isArray(S.ana))S.ana={};delete S.concl;delete S.ai;}}}catch(e){S=blank();}
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';if(!CTERMS.includes(S.cterm))S.cterm='compatível com';if(!['AO','OD','OE'].includes(S.olhos))S.olhos='AO';if(typeof S.data!=='string')S.data='';if(typeof S.txt!=='string'){S.txt=null;S.src='';}if(!['ai','manual'].includes(S.src))S.src=S.txt?'manual':'';if(!Array.isArray(S.notes))S.notes=[];if(!S.ana||typeof S.ana!=='object'||Array.isArray(S.ana))S.ana={};delete S.concl;delete S.ai;}}}catch(e){S=blank();}
 let ASS='',ENC=ENC_DEF;
 try{ASS=localStorage.getItem(KEYA)||localStorage.getItem('usg-ocular-ass')||localStorage.getItem('mapeamento-retina-ass')||'';const e=localStorage.getItem(KEYE);if(e!==null)ENC=e;}catch(e){}
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}},300);}
@@ -312,52 +327,94 @@ const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)&
 const andJoin=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' e '+a[a.length-1];
 const dot=s=>/[.!?]$/.test(s)?s:s+'.';
 const EYE_NAME={OD:'Olho direito',OE:'Olho esquerdo'};
-const LIM_TXT='Avaliação parcialmente limitada por baixa qualidade de sinal ou artefato de segmentação';
+const LIM_TXT='Exame de difícil avaliação devido interferências do sinal e má centralização';
+const LIM_END='Sugiro repetir exame com melhor centralização e sem interferências para melhor avaliação.';
+const examEyes=()=>S.olhos==='AO'?['OD','OE']:[S.olhos];
 
 function phrase(f,v,kind){
+  if(kind==='c'&&f.cg)return f.cg[v.g]||f.cg[0];
   let s=kind==='t'?f.t:f.c;if(s==null)return null;
   if(f.g){const o=f.g[v.g]||f.g[0];const ins=kind==='t'?o[1]:o[2];s=s.includes('{g}')?s.replace('{g}',ins):s+ins;}
-  if(f.n){const n=num(v.n);if(n!==null)s+=kind==='t'?f.n.t.replace('{n}',Math.round(n)):f.n.c(n);}
+  if(f.n){const n=num(v.n);const ins=n!==null?(kind==='t'?f.n.t.replace('{n}',Math.round(n)):f.n.c(n)):'';s=s.includes('{n}')?s.replace('{n}',ins):s+ins;}
   if(f.s){const a=f.s.filter(x=>v.s.includes(x[0])).map(x=>kind==='t'?x[2]:x[3]).filter(Boolean);
-    if(a.length)s+=(kind==='t'?f.sp:f.scp)+andJoin(a);}
+    if(a.length)s+=(kind==='t'?f.sp:f.scp)+a.join('');}
   return s.replace(/\s{2,}/g,' ').trim();
 }
+/* Achados marcados num olho, na ordem do catálogo */
+function selF(eye){const r=[];SECTIONS.forEach(sec=>sec.f.forEach(f=>{const v=eye.sel[sec.id][f.id];if(v)r.push({sec,f,v});}));return r;}
+/* Para contagem nos cartões: um rótulo por achado marcado + texto livre */
 function secItems(eye,sec,kind){
-  const sel=eye.sel[sec.id];const out=sec.f.filter(f=>sel[f.id]).map(f=>{const p=phrase(f,sel[f.id],kind);return p&&kind==='t'?(f.pre?f.pre+p:cap(p)):p;}).filter(Boolean);
-  if(kind==='t'){const o=eye.outro[sec.id].trim().replace(/\.$/,'');if(o)out.push(cap(o));}
+  const out=selF(eye).filter(x=>x.sec===sec).map(x=>kind==='t'?(phrase(x.f,x.v,'t')||x.f.l):phrase(x.f,x.v,'c')).filter(Boolean);
+  if(kind==='t'){const o=eye.outro[sec.id].trim();if(o)out.push(o);}
   return out;
 }
-function abnormal(eye){let n=0;SECTIONS.forEach(s=>n+=secItems(eye,s,'t').length);if(eye.fov!=='presente')n++;if(eye.ot.trim())n++;if(eye.lim)n++;return n;}
+function abnormal(eye){let n=selF(eye).length;SECTIONS.forEach(s=>{if(eye.outro[s.id].trim())n++;});if(eye.fov!=='presente')n++;if(eye.ot.trim())n++;if(eye.lim)n++;if(eye.cstp)n++;return n;}
+const lc1=t=>/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]/.test(t)?t[0].toLowerCase()+t.slice(1):t;
 
-/* Descrição de um olho, no formato dos laudos de referência */
+/* Itens de um olho, no formato do serviço */
 function eyeBlock(e){
-  const eye=S.eyes[e],L=[],sec=id=>SECTIONS.find(x=>x.id===id);
-  const put=id=>{const x=sec(id),it=secItems(eye,x,'t');(it.length?it:[x.normal]).forEach(t=>L.push('• '+t.replace(/\.$/,'')));};
-  put('ivr');
-  L.push('• Depressão foveal '+eye.fov);
-  const c=num(eye.cst);L.push('• Espessura central: '+(c!==null?Math.round(c):'___')+' µm');
-  put('int');put('ext');put('epr');
-  if(eye.ot.trim())eye.ot.trim().split('\n').map(x=>x.trim().replace(/\.$/,'')).filter(Boolean).forEach(t=>L.push('• '+cap(t)));
-  if(eye.lim)L.push('• '+LIM_TXT);
+  const eye=S.eyes[e],L=[],sel=selF(eye);
+  const T=x=>phrase(x.f,x.v,'t');
+  const push=t=>{t=String(t).trim().replace(/\.$/,'');if(t)L.push('• '+cap(t));};
+  const outro=id=>{const o=eye.outro[id].trim().replace(/\.$/,'');return o?[o]:[];};
+  const extras=()=>{eye.ot.trim().split('\n').map(x=>x.trim()).filter(Boolean).forEach(push);};
+  if(eye.lim)push(LIM_TXT);
+  const all=sel.filter(x=>x.f.take==='all');
+  if(all.length){all.forEach(x=>push(T(x)));extras();return L;}
+  /* 1. interface: um item; estado da hialoide primeiro, unido ao achado seguinte por "com" */
+  const iv=sel.filter(x=>x.sec.id==='ivr'&&!x.f.own);
+  const parts=iv.map(x=>T(x)).concat(outro('ivr'));
+  if(!parts.length)push(SECTIONS[0].normal);
+  else if(parts.length===1&&iv.length===1&&iv[0].f.alone)push(IVR+iv[0].f.alone);
+  else{const first=parts[0],rest=parts.slice(1).map(lc1);
+    push(IVR+first+(rest.length?((iv[0]&&iv[0].f.hial)?' com ':', ')+rest.join(', '):''));}
+  sel.filter(x=>x.f.own).forEach(x=>push(T(x)));
+  if(sel.some(x=>x.f.take==='2-6')){extras();return L;}
+  /* 2 e 3. fóvea e espessura */
+  push((FOV.find(x=>x[0]===eye.fov)||FOV[0])[2]);
+  const c=num(eye.cst);push('Espessura central: '+(c!==null?Math.round(c):'___')+' µm'+(eye.cstp?' (Medida prejudicada devido a interferência)':''));
+  /* 4 a 6 */
+  const t46=sel.filter(x=>x.f.take==='4-6');
+  if(t46.length){t46.forEach(x=>push(T(x)));['int','ext','epr'].forEach(id=>outro(id).forEach(push));extras();return L;}
+  const of=(id,pred)=>sel.filter(x=>x.sec.id===id&&(!pred||pred(x))).map(T).filter(Boolean);
+  const it=of('int').concat(outro('int'));(it.length?it:[SECTIONS[1].normal]).forEach(push);
+  const m56=sel.filter(x=>x.f.m56||x.f.take==='5-6');
+  const ex=of('ext',x=>x.f.take!=='5-6').concat(outro('ext'));
+  const ep=of('epr',x=>!x.f.m56).concat(outro('epr'));
+  if(m56.length){ex.forEach(push);m56.forEach(x=>push(T(x)));ep.forEach(push);}
+  else{(ex.length?ex:[SECTIONS[2].normal]).forEach(push);(ep.length?ep:[SECTIONS[3].normal]).forEach(push);}
+  extras();
   return L;
 }
-/* Conclusão automática: agrupa achados iguais dos dois olhos */
+/* Conclusão: diagnósticos principais, agrupados por olho */
+function eyeConcl(e){
+  const sel=selF(S.eyes[e]).filter(x=>x.f.c!=null||x.f.cg);
+  let p=sel.filter(x=>!x.f.sec2).map(x=>phrase(x.f,x.v,'c'));
+  if(!p.length)p=sel.filter(x=>x.f.sec2).map(x=>phrase(x.f,x.v,'c'));
+  return [...new Set(p.filter(Boolean))];
+}
 function autoConcl(){
-  const lists={OD:[],OE:[]};
-  ['OD','OE'].forEach(e=>SECTIONS.forEach(s=>lists[e].push(...secItems(S.eyes[e],s,'c'))));
-  if(!lists.OD.length&&!lists.OE.length)return ['Exame dentro da normalidade'];
-  const order=[],map=new Map();
-  ['OD','OE'].forEach(e=>lists[e].forEach(p=>{const k=p.toLowerCase();if(!map.has(k)){map.set(k,{p,eyes:[]});order.push(k);}if(!map.get(k).eyes.includes(e))map.get(k).eyes.push(e);}));
-  const where={AO:' bilateral',OD:' em olho direito',OE:' em olho esquerdo'};
-  const items=order.map(k=>{const x=map.get(k);return x.p+where[x.eyes.length===2?'AO':x.eyes[0]];});
-  return ['Exame '+S.cterm+' '+andJoin(items)];
+  const eyes=examEyes(),per={};eyes.forEach(e=>per[e]=eyeConcl(e));
+  if(eyes.every(e=>!per[e].length))return ['Exame dentro da normalidade'];
+  const parts=[];
+  if(eyes.length===2){
+    const both=per.OD.filter(x=>per.OE.some(y=>y.toLowerCase()===x.toLowerCase()));
+    const only=e=>per[e].filter(x=>!both.some(y=>y.toLowerCase()===x.toLowerCase()));
+    if(both.length)parts.push(andJoin(both)+' em ambos os olhos');
+    if(only('OD').length)parts.push(andJoin(only('OD'))+' em olho direito');
+    if(only('OE').length)parts.push(andJoin(only('OE'))+' em olho esquerdo');
+  }else parts.push(andJoin(per[eyes[0]])+(eyes[0]==='OD'?' em olho direito':' em olho esquerdo'));
+  return ['Exame '+S.cterm+' '+andJoin(parts)];
 }
 /* Linhas do laudo: {t:texto, b:negrito, bul:item com marcador} */
 function lines(){
-  const L=[{t:'TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA',b:1},{t:''},{t:'PACIENTE : '+S.pac.trim().toUpperCase(),b:1},{t:''}];
-  ['OD','OE'].forEach(e=>{L.push({t:EYE_NAME[e],b:1});eyeBlock(e).forEach(t=>L.push({t,bul:1}));L.push({t:''});});
+  const L=[{t:'TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA',b:1},{t:''},{t:'PACIENTE : '+S.pac.trim().toUpperCase(),b:1}];
+  if(S.data.trim())L.push({t:'DATA: '+S.data.trim(),b:1});
+  L.push({t:''});
+  examEyes().forEach(e=>{L.push({t:EYE_NAME[e],b:1});eyeBlock(e).forEach(t=>L.push({t,bul:1}));L.push({t:''});});
   L.push({t:'Conclusão',b:1},{t:''});
-  autoConcl().forEach(t=>L.push({t,bul:t.startsWith('• ')}));
+  autoConcl().forEach(t=>L.push({t}));
+  if(examEyes().some(e=>S.eyes[e].lim))L.push({t:''},{t:LIM_END});
   ENC.split('\n').map(x=>x.trim()).filter(Boolean).forEach(t=>L.push({t:''},{t}));
   const a=ASS.split('\n').map(x=>x.trim()).filter(Boolean);
   if(a.length){L.push({t:''});a.forEach(t=>L.push({t,b:1,sig:1}));}
@@ -383,23 +440,24 @@ function optsRow(sec,f,v){
   if(f.s)h+=`<div class="chips">${f.s.map(([k,l])=>{const on=v.s.includes(k);return `<span class="chip mini${on?' on':''}"><button type="button" data-s="${sec.id}" data-sf="${f.id}" data-k="${k}" aria-pressed="${on}">${esc(l)}</button></span>`;}).join('')}</div>`;
   return h?`<div class="qrow"><span class="label">${esc(f.l)}</span>${h}</div>`:'';
 }
-function nHint(f,v){if(f.id!=='bm')return '';const n=num(v.n);return n===null?'IVMTS: pequeno ≤ 250, médio 251 a 400, grande > 400':'IVMTS:'+f.n.c(n).replace(' de tamanho',''); }
+function nHint(f,v){if(f.id!=='bm')return '';const n=num(v.n);return n===null?'IVMTS (diâmetro mínimo): pequeno ≤ 250, médio 251 a 400, grande > 400':'IVMTS: '+(n<=250?'pequeno':n<=400?'médio':'grande');}
 function secCard(sec){
   const eye=S.eyes[S.eye],sel=eye.sel[sec.id],n=secItems(eye,sec,'t').length;
   const chips=sec.f.map(f=>{const on=!!sel[f.id];return `<span class="chip${on?' on':''}"><button type="button" data-s="${sec.id}" data-f="${f.id}" aria-pressed="${on}">${esc(f.l)}</button></span>`;}).join('');
   const rows=sec.f.filter(f=>sel[f.id]).map(f=>optsRow(sec,f,sel[f.id])).join('');
   return `<section class="sec" id="sec-${sec.id}"><div class="sec-h"><h2>${esc(sec.name)}</h2>${pill(n)}</div>
    <div class="chips">${chips}</div>${rows}
-   <input class="outro" data-o="${sec.id}" type="text" placeholder="Outro achado (texto livre)" value="${esc(eye.outro[sec.id])}"></section>`;
+   ${sec.id==='dx'?'<p class="hint">Só entra na conclusão.</p>':`<input class="outro" data-o="${sec.id}" type="text" placeholder="Outro achado (texto livre)" value="${esc(eye.outro[sec.id])}">`}</section>`;
 }
 function fovCard(){
   const eye=S.eyes[S.eye],c=num(eye.cst),ab=eye.fov!=='presente';
   return `<section class="sec" id="sec-fov"><div class="sec-h"><h2>Fóvea</h2><span class="pill${ab?' abn':''}" id="fovPill" style="text-transform:none">${c!==null?Math.round(c)+' µm':'falta espessura'}</span></div>
    <div class="fovrow">
     <div class="field"><span class="label">Depressão foveal</span><div class="chips">${FOV.map(([k,l])=>`<span class="chip${eye.fov===k?' on':''}"><button type="button" data-fov="${k}" aria-pressed="${eye.fov===k}">${esc(l)}</button></span>`).join('')}</div></div>
-    <div class="field"><label class="label" for="cst">Espessura central</label><div class="qline"><input class="numin" id="cst" type="text" inputmode="numeric" value="${esc(eye.cst)}" placeholder="ex.: 261"><span class="unit">µm</span></div></div>
+    <div class="field"><label class="label" for="cst">Espessura central</label><div class="qline"><input class="numin" id="cst" type="text" inputmode="numeric" value="${esc(eye.cst)}" placeholder="ex.: 261"><span class="unit">µm</span></div>
+     <label class="check"><input type="checkbox" id="cstp"${eye.cstp?' checked':''}> Medida prejudicada (segmentação falhou)</label></div>
    </div>
-   <p class="hint">Use o setor central (1 mm) do mapa ETDRS. A cor do banco normativo só entra no laudo se houver correlação no B-scan.</p></section>`;
+   <p class="hint">Valor do círculo central (1 mm) do ETDRS. As cores do banco normativo não entram no laudo.</p></section>`;
 }
 function imgCard(){
   const L=IMGS[S.eye],all=IMGS.OD.length+IMGS.OE.length;
@@ -420,12 +478,12 @@ function renderImg(){const el=$('sec-img');if(el)el.outerHTML=imgCard();}
 function othersCard(){
   const eye=S.eyes[S.eye];
   return `<section class="sec" id="sec-ot"><div class="sec-h"><h2>Outros achados</h2>${pill((eye.ot.trim()?1:0)+(eye.lim?1:0))}</div>
-   <div class="chips"><span class="chip${eye.lim?' on':''}"><button type="button" data-lim="1" aria-pressed="${eye.lim}">Qualidade limitada / artefato</button></span></div>
+   <div class="chips"><span class="chip${eye.lim?' on':''}"><button type="button" data-lim="1" aria-pressed="${eye.lim}">Exame de difícil avaliação</button></span></div>
    <textarea class="outro" data-ot="1" rows="2" placeholder="Texto livre, uma linha por item. Em branco, nada aparece no laudo." style="resize:vertical">${esc(eye.ot)}</textarea></section>`;
 }
 function renderSections(){
   const sec=id=>secCard(SECTIONS.find(x=>x.id===id));
-  $('sections').innerHTML=imgCard()+sec('ivr')+fovCard()+sec('int')+sec('ext')+sec('epr')+othersCard();
+  $('sections').innerHTML=imgCard()+sec('ivr')+fovCard()+sec('int')+sec('ext')+sec('epr')+othersCard()+sec('dx');
 }
 function refreshPills(){
   const eye=S.eyes[S.eye];
@@ -451,7 +509,8 @@ function update(){
   $('mstat').textContent='OD '+abnormal(S.eyes.OD)+' · OE '+abnormal(S.eyes.OE);
   save();
 }
-function setEye(e){S.eye=e;$('app').dataset.eye=e;document.querySelector('.mbar').dataset.eye=e;
+function setEye(e){if(S.olhos!=='AO')e=S.olhos;S.eye=e;
+  document.querySelectorAll('#eyeseg button').forEach(b=>b.disabled=S.olhos!=='AO'&&b.dataset.e!==S.olhos);$('copyEye').hidden=S.olhos!=='AO';$('app').dataset.eye=e;document.querySelector('.mbar').dataset.eye=e;
   document.querySelectorAll('#eyeseg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.e===e));
   $('copyEye').textContent='Copiar para '+other(e);renderSections();update();}
 function refocus(sel){const nb=document.querySelector(sel);if(nb)nb.focus();}
@@ -482,6 +541,7 @@ secs.addEventListener('input',ev=>{const t=ev.target,eye=S.eyes[S.eye];
   else if(t.dataset.ot){eye.ot=t.value;refreshPills();update();}
   else if(t.dataset.n){const v=eye.sel[t.dataset.s][t.dataset.n];v.n=t.value;const f=SEC_OF[t.dataset.n].f.find(x=>x.id===t.dataset.n);const h=document.querySelector(`[data-nh="${t.dataset.n}"]`);if(h)h.textContent=nHint(f,v);update();}
   else if(t.id==='cst'){eye.cst=t.value;refreshPills();update();}
+  else if(t.id==='cstp'){eye.cstp=t.checked;update();}
 });
 /* Arrastar e soltar imagens */
 secs.addEventListener('dragover',ev=>{const z=ev.target.closest('#dz');if(!z)return;ev.preventDefault();z.classList.add('over');});
@@ -502,11 +562,14 @@ async function pdfPages(file){
   const lib=await loadPdfJs();const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
   for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const v1=pg.getViewport({scale:1});
     const v=pg.getViewport({scale:Math.min(4,2400/Math.max(v1.width,v1.height))});
-    let both=false;try{const tc=await pg.getTextContent();both=/\bBOTH\b|Eye\s*:\s*Both/i.test(tc.items.map(t=>t.str).join(' '));}catch(x){}
+    let both=false,date='',eyeTag='';try{const tx=(await pg.getTextContent()).items.map(t=>t.str).join(' ');both=/\bBOTH\b|Eye\s*:\s*Both/i.test(tx);
+      const m=tx.match(/(\d{1,2})\/(\d{1,2})\/(20\d{2})\s*,\s*(BOTH|OD|OS)\s*,/);
+      if(m){date=String(m[2]).padStart(2,'0')+'/'+String(m[1]).padStart(2,'0')+'/'+m[3];eyeTag=m[4];}
+      else{const d=tx.match(/Data do exame:\s*(\d{2}\/\d{2}\/\d{4})/);if(d)date=d[1];}}catch(x){}
     const c=document.createElement('canvas');c.width=Math.round(v.width);c.height=Math.round(v.height);
     const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
     await pg.render({canvasContext:ctx,viewport:v}).promise;
-    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));if(blob)out.push({blob,both,name:file.name.replace(/\.pdf$/i,'')+' · pág. '+i});}
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));if(blob)out.push({blob,both,date,eyeTag,name:file.name.replace(/\.pdf$/i,'')+' · pág. '+i});}
   return out;
 }
 async function addFiles(files){
@@ -517,7 +580,13 @@ async function addFiles(files){
   if(!ok.length){toast('Nenhuma imagem ou PDF reconhecido');return;}
   for(const f of ok){
     if(isPdf(f)){toast('Abrindo o PDF…');
-      try{for(const p of await pdfPages(f))IMGS[e].push({url:await toDataURL(p.blob),name:p.name,blob:p.blob,both:p.both});}
+      try{const pages=await pdfPages(f);for(const p of pages)IMGS[e].push({url:await toDataURL(p.blob),name:p.name,blob:p.blob,both:p.both});
+        /* Data e olhos tirados do próprio PDF (o Nidek usa mês/dia/ano no rodapé) */
+        const dates=pages.map(p=>p.date).filter(Boolean),tags=pages.map(p=>p.eyeTag).filter(Boolean);
+        if(!S.data.trim()&&dates.length){const cnt={};dates.forEach(d=>cnt[d]=(cnt[d]||0)+1);S.data=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];$('data').value=S.data;
+          if(Object.keys(cnt).length>1)toast('O PDF tem páginas com datas diferentes');}
+        if(tags.length&&S.txt===null){const o=tags.includes('BOTH')||(tags.includes('OD')&&tags.includes('OS'))?'AO':tags[0]==='OD'?'OD':'OE';if(o!=='AO'&&e!==o){IMGS[o]=IMGS[o].concat(IMGS[e]);IMGS[e]=[];}if(o!==S.olhos){S.olhos=o;$('olhos').value=o;setEye(S.eye);}}
+        update();}
       catch(x){toast('Não foi possível abrir o PDF. Envie as páginas como imagem.');}}
     else{try{IMGS[e].push({url:await toDataURL(f),name:f.name,blob:f});}catch(x){toast('Não foi possível ler '+f.name);}}
     renderImg();
@@ -534,75 +603,116 @@ const AI={busy:false,msg:'',err:false};
 if(HAS_CLAUDE){
   window.claude.use('sample').then(async sm=>{if(!sm)return;const l=await sm.limits().catch(()=>null);if(!l||!l.images)return;SAMPLE=sm;IMG_LIM=l.images;renderImg();}).catch(()=>{});
 }
-const MODEL_TXT=`TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA
+/* Guia do serviço (guia-laudo-oct.md), condensado para a leitura automática */
+const GUIDE=`MODELO DO SERVIÇO (itens sem ponto final; olhos por extenso)
+Para cada olho examinado, seis itens nesta ordem:
+1. Interface vítreo-retiniana: Sem alterações
+2. Depressão foveal presente
+3. Espessura central: N µm
+4. Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado
+5. Retina neurossensorial sem alterações
+6. Complexo EPR-Coroide sem alterações
+Estrutura normal: copie a frase acima literalmente. Estrutura alterada: troque só aquele item pela frase da biblioteca.
 
-PACIENTE : [NOME]
+BIBLIOTECA DE FRASES (use exatamente estas quando o achado couber)
+Item 1, sempre com o prefixo "Interface vítreo-retiniana: " e todos os achados da interface no mesmo item:
+- hialoide posterior parcialmente aderida
+- Sem alterações com hialoide aderida
+- hialoide posterior descolada (use quando relevante, por exemplo com buraco macular; hialoide totalmente descolada e afastada, sem tração, sai como "Sem alterações")
+- Não visualizo hialoide posterior
+- Hiperrefletividade linear pré retiniana compatível com membrana epirretiniana (sutil: "pré retiniana discreta" ou "pré retiniana tênue")
+- hialoide parcialmente aderida com hiperrefletividade linear pré retiniana tênue compatível com membrana epirretiniana
+- adesão vítrea persistente na região macular, com tração sobre a superfície retiniana e alteração do contorno foveal (tração vitreomacular)
+- Presença de pontos hiperrefletivos entre a hialoide e a retina sugestivo de hemorragia subhialoidea
+- linha hiperrefletiva sugestiva de óleo de silicone em cavidade vítrea
+Item 2: Depressão foveal presente | Depressão foveal alterada | Depressão foveal irregular | Depressão foveal ausente | Perda da depressão foveal | Exame com perda de centralização em região foveal (exame descentrado, alta miopia)
+Item 3: Espessura central: N µm. Se a segmentação falhou e o valor contradiz o B-scan (por exemplo, valor baixo num olho com edema): "Espessura central: N µm (Medida prejudicada devido a interferência)". Sem mapa ETDRS: "Espessura central: ___ µm".
+Item 4 (um item por achado):
+- Presença de cistos intra-retinianos compatíveis com edema macular
+- Presença de cistos intra-retinianos compatíveis com edema macular e lâmina de líquido subretiniano compatível com descolamento seroso de retina
+- Presença de cisto intra-retiniano em região foveal
+- Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias
+- Presença de pontos hiperrefletivos com sombreamento posterior que podem corresponder a exsudatos
+Itens 5 e 6: achados da linha fotorreceptores-EPR ocupam UM item no lugar dos itens 5 e 6 (o olho fica com 5 itens):
+- O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula o que sugere drusas
+- Discreta irregularidade a nível de segmento externo dos fotorreceptores-EPR o que sugere drusas
+- O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula com áreas de atrofia do EPR (acrescente "e retina externa" se houver perda da retina externa)
+- Irregularidade na linha de fotorreceptores-EPR em região foveal associado a hiperrefletividade subretiniana compatível com membrana neovascular subretiniana; com atividade: acrescente "com presença de material hiporrefletivo subretiniano sugestivo de atividade de membrana" ou "apresentando líquido subretiniano"; cicatricial: "de aspecto cicatricial com áreas de atrofia do EPR"
+- Impraticável avaliação de retina externa e EPR devido a interferência de sinal (sombra de cistos ou hemorragia impede a avaliação)
+- Líquido sub-retiniano sem edema intrarretiniano (item 5): Presença de líquido subretiniano compatível com descolamento seroso de retina
+Achados que substituem vários itens:
+- Buraco macular de espessura total (substitui os itens 2 a 6): Presença de buraco macular de espessura total, com descontinuidade completa da retina neurossensorial na fóvea medindo cerca de N µm. Bordos do buraco apresentam cistos intrarretinianos com bordos elevados (inclua a medida só se houver medida na imagem)
+- Descolamento tracional (substitui todos os itens): Hialoide aderida com tração vítreo retiniana em vários pontos causando perda da depressão foveal e desorganização completa das camadas retinianas internas e externa
+- Desorganização com atrofia (substitui os itens 4 a 6): Evidencia-se desorganização das camadas internas e externa da retina com áreas de atrofia do EPR
+- Exame sem condição de avaliação: primeiro item "Exame de difícil avaliação devido interferências do sinal e má centralização", depois o achado principal visível (por exemplo "Apresenta áreas de afinamento retiniano com áreas de atrofia do EPR difusas podendo corresponder a quadro de degeneração miópica")
 
-Olho direito
-• Interface vítreo-retiniana: Sem alterações
-• Depressão foveal presente
-• Espessura central: [valor] µm
-• Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado
-• Retina neurossensorial sem alterações
-• Complexo EPR-Coroide sem alterações
+CONCLUSÃO (uma frase, sem ponto final)
+- Entram só os diagnósticos principais: membrana epirretiniana, tração vitreomacular, edema macular, membrana neovascular (em atividade ou cicatriz disciforme), drusas maculares, atrofia (quando é o achado principal), buraco macular, descolamento de retina tracional, degeneração miópica.
+- Não entram: hialoide aderida ou parcialmente aderida, pontos hiperrefletivos isolados, cisto foveal isolado. Exame só com esses achados: "Exame dentro da normalidade".
+- Padrões: "Exame dentro da normalidade" | "Exame compatível com membrana epirretiniana e edema macular em ambos os olhos" | "Exame sugestivo de edema macular bilateral" | "Exame sugestivo de cicatriz disciforme em olho direito e membrana neovascular em atividade em olho esquerdo" | "Exame compatível com buraco macular de espessura total em olho direito" | "Exame sugere quadro de retinopatia diabética" | "Exame sugestivo de edema macular secundário a oclusão de veia central da retina em olho direito" | "Exame compatível com drusas maculares em ambos os olhos" | "Exame compatível com degeneração miópica em ambos os olhos".
+- "compatível com" para achado típico; "sugestivo de" quando há inferência (etiologia, atividade, qualidade ruim). Etiologia (retinopatia diabética, oclusão venosa, degeneração miópica) só quando o padrão for claro, e registre na conferência que precisa de confirmação clínica.
 
-Olho esquerdo
-(mesma estrutura)
+LEITURA DO EXAME (Nidek RS-3000)
+- Espessura central = número do círculo central (1 mm) do ETDRS 9 Sector, na página MACULA MAP X-Y (mapa ILM–RPE/BM). AS CORES DO BANCO NORMATIVO NÃO ENTRAM NO LAUDO: exames normais costumam ter o anel interno vermelho ou amarelo.
+- Datas do aparelho estão em mês/dia/ano (4/11/2026 = 11/04/2026). Escreva a data como dd/mm/aaaa.
+- Qualidade: SQI (x/5), SSI (x/10) e "Tracing HD (n/50)"; n baixo (1/50) = imagem ruidosa, sem promediação.
+- Página "Eye:Both": olho direito (R) à esquerda, olho esquerdo (L) à direita. Página de um olho só ("OD" ou "OS" no rodapé): o exame é desse olho; o outro fica null.
+- Sombreamento x atrofia: exsudatos, hemorragias e focos hiperrefletivos causam sombra posterior; isso não é atrofia. Atrofia exige hipertransmissão para a coroide com perda do EPR e afinamento da retina externa, sem foco acima explicando o sinal.
+- Avalie todos os B-scans (CROSS, LINE, RADIAL, MULTI CROSS) antes de decidir que uma estrutura é normal. Descreva alterações sutis, desde que visíveis.`;
+const EXAMPLES=`EXEMPLOS REAIS DO SERVIÇO
+Normal, os dois olhos:
+OD: ["Interface vítreo-retiniana: Sem alterações","Depressão foveal presente","Espessura central: 262 µm","Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado","Retina neurossensorial sem alterações","Complexo EPR-Coroide sem alterações"]
+Conclusão: Exame dentro da normalidade
 
-Conclusão
+Edema cistoide com líquido sub-retiniano e membrana sutil (olho direito):
+["Interface vítreo-retiniana: Hiperrefletividade linear pré retiniana discreta compatível com membrana epirretiniana","Depressão foveal alterada","Espessura central: 495 µm","Presença de cistos intra-retinianos compatíveis com edema macular e lâmina de líquido subretiniano compatível com descolamento seroso de retina","Retina neurossensorial sem alterações","Complexo EPR-Coroide sem alterações"]
+Conclusão (achado nos dois olhos): Exame sugestivo de edema macular bilateral
 
-Exame dentro da normalidade`;
-const STYLE_EX=`Itens alterados, como o laudador escreve:
-• Hiperrefletividade linear pré retiniana compatível com membrana epirretiniana
-• Interface vítreo-retiniana: adesão vítrea persistente na região macular, com tração sobre a superfície retiniana e alteração do contorno foveal
-• Retina neurossensorial com espessamento e deformação do perfil foveal associados à tração vitreomacular
-• Depressão foveal alterada
-• Presença de cistos intra-retinianos compatíveis com edema macular; presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias
-• Interrupção focal da zona elipsoide em região macular
-• Afinamento da retina neurossensorial em região foveal
-• Presença de pontos hiperrefletivos intrarretinianos com sombreamento posterior, que podem corresponder a exsudatos duros
-• Complexo EPR-Coroide com irregularidades e elevações focais do EPR, compatíveis com drusas
-• Complexo EPR-Coroide com perda do EPR e hipertransmissão do sinal para a coroide, sugestiva de atrofia
+Membrana neovascular cicatricial no olho direito e ativa no olho esquerdo:
+OD: ["Interface vítreo-retiniana: Sem alterações","Depressão foveal irregular","Espessura central: 212 µm","Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado","Irregularidade na linha de fotorreceptores-EPR em região foveal associado a hiperrefletividade subretiniana compatível com membrana neovascular subretiniana de aspecto cicatricial com áreas de atrofia do EPR"]
+OE: ["Interface vítreo-retiniana: Sem alterações","Perda da depressão foveal","Espessura central: 376 µm","Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado","Irregularidade na linha de fotorreceptores-EPR em região foveal associado a hiperrefletividade subretiniana compatível com membrana neovascular subretiniana apresentando líquido subretiniano"]
+Conclusão: Exame sugestivo de cicatriz disciforme em olho direito e membrana neovascular em atividade em olho esquerdo
 
-Conclusões, como o laudador escreve:
-- Exame dentro da normalidade
-- Exame sugestivo de membrana epirretiniana em olho direito
-- Exame compatível com edema macular bilateral
-- Achados compatíveis com tração vitreomacular em ambos os olhos, com maior espessura central no olho esquerdo
-- Exame sugestivo de afinamento foveal em olho esquerdo`;
+Drusas (itens 5 e 6 fundidos):
+["Interface vítreo-retiniana: Sem alterações","Depressão foveal presente","Espessura central: 267 µm","Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado","O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula o que sugere drusas"]
+Conclusão (nos dois olhos): Exame compatível com drusas maculares em ambos os olhos
+
+Membrana epirretiniana, edema e exsudatos, com atrofia:
+["Interface vítreo-retiniana: Hiperrefletividade linear pré retiniana compatível com membrana epirretiniana","Depressão foveal alterada","Espessura central: 458 µm","Presença de cistos intra-retinianos compatíveis com edema macular","Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias","O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula com áreas de atrofia do EPR"]
+Conclusão (nos dois olhos): Exame compatível com membrana epirretiniana e edema macular em ambos os olhos
+
+Buraco macular, exame só do olho direito:
+OD: ["Interface vítreo-retiniana: hialoide posterior descolada","Presença de buraco macular de espessura total, com descontinuidade completa da retina neurossensorial na fóvea medindo cerca de 668 µm. Bordos do buraco apresentam cistos intrarretinianos com bordos elevados"]; OE: null
+Conclusão: Exame compatível com buraco macular de espessura total em olho direito
+
+Edema com sombra que impede avaliar a retina externa:
+["Interface vítreo-retiniana: Sem alterações","Perda da depressão foveal","Espessura central: 469 µm","Presença de cistos intra-retinianos compatíveis com edema macular","Impraticável avaliação de retina externa e EPR devido a interferência de sinal"]
+Conclusão (só nesse olho): Exame sugestivo de edema macular secundário a oclusão de veia central da retina em olho direito
+
+Hemorragia sub-hialoidea e pontos hiperrefletivos:
+["Interface vítreo-retiniana: Presença de pontos hiperrefletivos entre a hialoide e a retina sugestivo de hemorragia subhialoidea","Depressão foveal presente","Espessura central: 270 µm","Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias","Retina neurossensorial sem alterações","Complexo EPR-Coroide sem alterações"]
+Conclusão: Exame sugere quadro de retinopatia diabética
+
+Medida prejudicada:
+"Espessura central: 148 µm (Medida prejudicada devido a interferência)"`;
 function buildPrompt(list){
-  return `Você é um especialista em retina laudando uma tomografia de coerência óptica (OCT) de mácula. As imagens anexadas são, na ordem:
+  return `Você é o retinólogo do serviço laudando uma tomografia de coerência óptica (OCT) de mácula, no modelo e no estilo exatos do serviço. As imagens anexadas são, na ordem:
 ${list.map((x,i)=>`Imagem ${i+1}: ${x.desc}`).join('\n')}
-Páginas com os dois olhos foram enviadas também divididas ao meio, para mais detalhe: neste aparelho o olho direito (R) fica à esquerda da página e o olho esquerdo (L) à direita. Use as metades para a morfologia e a página inteira para cabeçalho, índices de qualidade e contexto. Nas demais imagens, identifique o olho pelos rótulos (R, OD, Eye:R = olho direito; L, OS, OE, Eye:L = olho esquerdo).
+Páginas com os dois olhos foram enviadas também divididas ao meio, para mais detalhe (metade esquerda = olho direito; metade direita = olho esquerdo). Use as metades para a morfologia e a página inteira para cabeçalho, qualidade e contexto.
 
-TAREFA: analisar as imagens e escrever o laudo no MODELO do laudador, com o vocabulário e o estilo dele.
+${GUIDE}
 
-MODELO
-${MODEL_TXT}
+${EXAMPLES}
 
-${STYLE_EX}
-
-REGRAS DE ESCRITA
-1. Cada olho tem exatamente seis itens, nesta ordem: interface vítreo-retiniana; depressão foveal; espessura central; camadas internas da retina; retina neurossensorial; complexo EPR-coroide.
-2. Use a frase normal do modelo, literalmente, somente quando a sua análise daquela estrutura (campo "analise") não encontrou alteração em nenhum B-scan. Estrutura alterada: substitua só aquele item por uma frase descritiva no estilo dos exemplos. Dois achados na mesma estrutura ficam no mesmo item, separados por ponto e vírgula.
-3. Itens sem ponto final. Sem abreviações de olho: escreva olho direito, olho esquerdo, ambos os olhos ou bilateral.
-4. Espessura central: valor do setor central (1 mm) do mapa ETDRS de espessura total (ILM até EPR/membrana de Bruch), no formato "Espessura central: 326 µm". Sem mapa ETDRS legível: "Espessura central: ___ µm". Não estime pelo B-scan.
-5. Checagem obrigatória da espessura: compare o setor central do ETDRS com a escala do banco normativo ao lado do mapa (no topo da escala, acima do normal; na faixa verde, normal; abaixo do verde, amarelo ou vermelho, abaixo do normal) e com os setores vizinhos. Central abaixo do normal ou fóvea visivelmente mais fina no B-scan: descreva o afinamento no item da retina neurossensorial ("Afinamento da retina neurossensorial em região foveal") e inclua na conclusão. Central acima do normal: procure a causa (edema, tração, membrana) e descreva o espessamento. Se a cor indicar alteração e o B-scan não confirmar, não descreva no laudo e registre na conferência.
-6. Percorra cada estrutura nos B-scans: interface (membrana epirretiniana, adesão ou tração vítrea, buraco); contorno e profundidade da depressão foveal; espessura (espessamento ou afinamento); camadas internas (cistos, pontos hiperrefletivos, desorganização); retina externa (fluido sub-retiniano, zona elipsoide, membrana limitante externa); EPR e coroide (drusas, descolamentos, atrofia). Descreva também alterações sutis, desde que visíveis.
-7. Achado provável, mas não confirmado: use "sugestivo de" no item e na conclusão. Áreas cinzas no mapa são falha de segmentação e não devem ser interpretadas.
-8. Conclusão: uma frase no estilo dos exemplos, sem ponto final.
-9. Antes de escrever os itens, preencha "analise": para cada olho e cada estrutura, descreva em uma frase curta o que você vê nos B-scans (localização e em qual imagem), sem partir do pressuposto de normalidade. O EPR e a coroide merecem atenção especial: irregularidade, elevações (drusas, descolamentos), interrupções, hiperrefletividade, hipertransmissão para a coroide e sombreamento por focos sobrejacentes.
-10. Sombreamento x hipertransmissão: exsudatos duros, hemorragias, pigmento e outros focos hiperrefletivos produzem SOMBRA posterior (faixa vertical escura que atenua o EPR e a coroide abaixo deles). Isso não é atrofia: descreva como sombreamento posterior pelos focos. Só descreva atrofia do EPR quando houver hipertransmissão (faixa clara que entra na coroide) com atenuação ou perda do EPR e afinamento da retina externa sobrejacente, sem foco hiperrefletivo acima explicando a alteração do sinal.
-11. Intensidade de sinal baixa (por exemplo, abaixo de 6/10 no Cirrus ou SQI baixo): registre na conferência, mas descreva os achados visíveis.
-12. Exame de um só olho: use null no outro olho. Protocolo sem mapa de espessura: "Espessura central: ___ µm" e registre na conferência.
-
-TAMBÉM INFORME
-- "paciente": nome do cabeçalho em ordem direta (o aparelho costuma exibir SOBRENOME NOME), em maiúsculas; "" se não houver.
-- "conferencia": 2 a 6 itens curtos para o laudador conferir (não entram no laudo): índice de qualidade (SQI/SSI) de cada olho, setores com artefato, setores fora do banco normativo e se têm correlação no B-scan, achados duvidosos, datas diferentes entre as imagens.
+COMO RESPONDER
+1. Primeiro preencha "analise": para cada olho e estrutura, uma frase curta do que você vê nos B-scans (e em qual imagem), sem partir do pressuposto de normalidade. EPR e coroide merecem atenção especial.
+2. Depois escreva os itens de cada olho com as frases do modelo e da biblioteca. Use a frase normal só se a análise da estrutura não encontrou alteração.
+3. "paciente": nome do cabeçalho em ordem direta (o aparelho mostra SOBRENOME NOME), em maiúsculas. "data": data do exame em dd/mm/aaaa, ou "".
+4. "conferencia": 2 a 6 itens curtos para o laudador conferir (não entram no laudo): qualidade (SQI, SSI, n/50) de cada olho, segmentação com falha, achados duvidosos, etiologia inferida, datas diferentes entre páginas.
+5. Olho que não aparece em nenhuma imagem: null na lista e na análise.
 
 Responda com apenas um objeto JSON, sem texto antes ou depois:
-{"paciente": "", "analise": {"OD": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}, "OE": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}}, "OD": ["seis itens"], "OE": ["seis itens"], "conclusao": "", "conferencia": []}
-Se um olho não aparecer em nenhuma imagem, use null no lugar da lista e da análise desse olho.`;
+{"paciente": "", "data": "", "analise": {"OD": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}, "OE": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}}, "OD": ["itens"], "OE": ["itens"], "conclusao": "", "conferencia": []}`;
 }
 const clean=t=>String(t).trim().replace(/^[•\-–*]\s*/,'').replace(/\.$/,'').trim();
 /* Monta o texto final: conteúdo da análise no layout do modelo + encerramento e assinatura da página */
@@ -610,15 +720,22 @@ function aiCompose(r){
   if(!r||typeof r!=='object'||Array.isArray(r))throw {code:'invalid_json'};
   const notes=Array.isArray(r.conferencia)?r.conferencia.map(clean).filter(Boolean).slice(0,8):[];
   if(!S.pac.trim()&&typeof r.paciente==='string'&&r.paciente.trim()){S.pac=r.paciente.trim().toUpperCase();$('pac').value=S.pac;}
+  if(!S.data.trim()&&typeof r.data==='string'&&/^\d{2}\/\d{2}\/\d{4}$/.test(r.data.trim())){S.data=r.data.trim();$('data').value=S.data;}
   const name=S.pac.trim().toUpperCase();
-  const L=['TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA','','PACIENTE : '+name,''];
+  const L=['TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA','','PACIENTE : '+name];
+  if(S.data.trim())L.push('DATA: '+S.data.trim());
+  L.push('');
+  const has=e=>Array.isArray(r[e])&&r[e].some(x=>clean(x));
+  if(has('OD')!==has('OE')){S.olhos=has('OD')?'OD':'OE';$('olhos').value=S.olhos;}
   let any=false;
   ['OD','OE'].forEach(e=>{
     const it=Array.isArray(r[e])?r[e].map(clean).filter(Boolean):null;
     if(it&&it.length){any=true;L.push(EYE_NAME[e]);it.forEach(t=>L.push('• '+t));L.push('');}
     else notes.push(EYE_NAME[e]+': não incluído nas imagens; omitido do laudo.');});
   if(!any)throw {code:'empty_completion'};
-  L.push('Conclusão','',clean(r.conclusao||'')||'___');
+  const cc=clean(r.conclusao||'');
+  L.push('Conclusão','',cc||'___');
+  if(/difícil avaliação/i.test(L.join(' ')))L.push('',LIM_END);
   ENC.split('\n').map(x=>x.trim()).filter(Boolean).forEach(t=>L.push('',t));
   const a=ASS.split('\n').map(x=>x.trim()).filter(Boolean);if(a.length){L.push('');a.forEach(t=>L.push(t));}
   const ANA_K=[['interface','Interface'],['fovea','Fóvea'],['espessura','Espessura'],['camadas_internas','Camadas internas'],['retina_externa','Retina externa'],['epr_coroide','EPR e coroide']];
@@ -627,7 +744,7 @@ function aiCompose(r){
     const rows=ANA_K.map(([k,l])=>[l,typeof x[k]==='string'?clean(x[k]):'']).filter(r=>r[1]);if(rows.length)ana[e]=rows;});
   return {txt:L.join('\n'),notes,ana};
 }
-const IS_BOLD=t=>t==='TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA'||/^PACIENTE\s*:/.test(t)||t==='Olho direito'||t==='Olho esquerdo'||t==='Conclusão'||ASS.split('\n').map(x=>x.trim()).filter(Boolean).includes(t);
+const IS_BOLD=t=>t==='TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA'||/^PACIENTE\s*:/.test(t)||/^DATA\s*:/.test(t)||t==='Olho direito'||t==='Olho esquerdo'||t==='Conclusão'||ASS.split('\n').map(x=>x.trim()).filter(Boolean).includes(t);
 function fmtHTML(txt){
   return txt.split('\n').map(t=>{
     if(!t.trim())return `<p style="${P}">&nbsp;</p>`;
@@ -713,7 +830,13 @@ $('resetAll').addEventListener('click',ev=>{const b=ev.currentTarget;
   ['OD','OE'].forEach(e=>{IMGS[e]=[];});
   S=blank();AI.msg='';bindTech();setEye('OD');toast('Novo laudo iniciado');});
 
-function bindTech(){$('pac').value=S.pac;$('cterm').value=S.cterm;$('printImg').checked=!!S.pimg;$('ass').value=ASS;$('enc').value=ENC;}
+function bindTech(){$('pac').value=S.pac;$('data').value=S.data;$('olhos').value=S.olhos;$('cterm').value=S.cterm;$('printImg').checked=!!S.pimg;$('ass').value=ASS;$('enc').value=ENC;}
+$('olhos').addEventListener('change',e=>{S.olhos=e.target.value;setEye(S.eye);});
+$('data').addEventListener('input',e=>{S.data=e.target.value;
+  if(S.txt!==null){const d=S.data.trim();
+    if(/^DATA\s*:.*$/m.test(S.txt))S.txt=d?S.txt.replace(/^DATA\s*:.*$/m,'DATA: '+d):S.txt.replace(/^DATA\s*:.*\n/m,'');
+    else if(d)S.txt=S.txt.replace(/^(PACIENTE\s*:.*)$/m,'$1\nDATA: '+d);}
+  update();});
 $('pac').addEventListener('input',e=>{S.pac=e.target.value;
   if(S.txt!==null)S.txt=S.txt.replace(/^PACIENTE\s*:.*$/m,'PACIENTE : '+S.pac.trim().toUpperCase());update();});
 $('cterm').addEventListener('change',e=>{S.cterm=e.target.value;update();});
