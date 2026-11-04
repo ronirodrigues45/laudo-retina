@@ -246,9 +246,9 @@ const SECTIONS = [
   {id:'trd', l:'Descolamento tracional', own:1, take:'all', t:'Hialoide aderida com tração vítreo retiniana em vários pontos causando perda da depressão foveal e desorganização completa das camadas retinianas internas e externa', c:'descolamento de retina tracional'}
  ]},
  {id:'int', name:'Camadas internas da retina', normal:'Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado', f:[
-  {id:'ed', l:'Cistos / edema macular', t:'Presença de cistos intra-retinianos compatíveis com edema macular', c:'edema macular{g}',
+  {id:'ed', l:'Cistos / edema macular', tf:v=>v.s.includes('dsr')?'Presença de cistos intra-retinianos e lâmina de líquido subretiniano, compatíveis com edema macular e descolamento seroso de retina':'Presença de cistos intra-retinianos compatíveis com edema macular', t:'Presença de cistos intra-retinianos compatíveis com edema macular', c:'edema macular{g}',
    g:[['Sem etiologia na conclusão','',''],['Diabético','',' diabético'],['Oclusão de veia central','',' secundário a oclusão de veia central da retina'],['Oclusão de ramo venoso','',' secundário a oclusão de ramo venoso da retina'],['Pós-operatório','',' cistoide pós-operatório'],['Uveítico','',' uveítico']],
-   s:[['dsr','Com líquido sub-retiniano',' e lâmina de líquido subretiniano compatível com descolamento seroso de retina','']], sp:'', scp:''},
+   s:[['dsr','Com líquido sub-retiniano','','']], sp:'', scp:''},
   {id:'cisf', l:'Cisto foveal isolado', t:'Presença de cisto intra-retiniano em região foveal', c:null},
   {id:'hrf', l:'Pontos hiperrefletivos', t:'Presença de pontos hiperrefletivos {g}', c:null,
    g:[['Exsudatos/hemorragias','que podem corresponder a exsudatos/hemorragias',''],['Com sombreamento (exsudatos)','com sombreamento posterior que podem corresponder a exsudatos','']]},
@@ -272,10 +272,10 @@ const SECTIONS = [
  {id:'epr', name:'Fotorreceptores-EPR e coroide', normal:'Complexo EPR-Coroide sem alterações', f:[
   {id:'dru', l:'Drusas', m56:1, t:'{g}', c:'drusas maculares',
    g:[['Padrão','O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula o que sugere drusas',''],['Discretas','Discreta irregularidade a nível de segmento externo dos fotorreceptores-EPR o que sugere drusas','']]},
-  {id:'mnv', l:'Membrana neovascular', m56:1, t:'Irregularidade na linha de fotorreceptores-EPR em região foveal associado a hiperrefletividade subretiniana compatível com membrana neovascular subretiniana{g}',
+  {id:'mnv', l:'Membrana neovascular', m56:1, t:'{g}',
    cg:['membrana neovascular subretiniana','membrana neovascular subretiniana em atividade','membrana neovascular subretiniana em atividade','cicatriz disciforme'],
-   g:[['Atividade não definida','',''],['Ativa: material hiporrefletivo',' com presença de material hiporrefletivo subretiniano sugestivo de atividade de membrana',''],['Ativa: líquido sub-retiniano',' apresentando líquido subretiniano',''],['Cicatricial',' de aspecto cicatricial com áreas de atrofia do EPR','']]},
-  {id:'atr', l:'Atrofia do EPR', m56:1, sec2:1, t:'O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula com áreas de atrofia do EPR', c:'atrofia do EPR',
+   g:[['Atividade não definida','Irregularidade na linha de fotorreceptores-EPR em região foveal, associada a hiperrefletividade subretiniana compatível com membrana neovascular',''],['Ativa: material hiporrefletivo','Irregularidade na linha de fotorreceptores-EPR em região foveal, associada a hiperrefletividade subretiniana compatível com membrana neovascular e material hiporrefletivo adjacente sugestivo de atividade',''],['Ativa: líquido sub-retiniano','Irregularidade na linha de fotorreceptores-EPR em região foveal, associada a material hiperrefletivo compatível com membrana neovascular e líquido subretiniano',''],['Cicatricial','Material hiperrefletivo subretiniano em região foveal compatível com membrana neovascular de aspecto cicatricial, com áreas de atrofia do EPR','']]},
+  {id:'atr', l:'Atrofia do EPR', m56:1, sec2:1, t:'O segmento externo dos fotorreceptores apresenta-se irregular na região da mácula, com áreas de atrofia do EPR', c:'atrofia do EPR',
    s:[['rext','Inclui retina externa',' e retina externa','']], sp:'', scp:''},
   {id:'deps', l:'DEP seroso', t:'Descolamento do EPR de conteúdo hiporrefletivo homogêneo, compatível com descolamento seroso do EPR', c:'descolamento seroso do EPR'},
   {id:'depfv', l:'DEP fibrovascular', t:'Descolamento do EPR de conteúdo heterogêneo, sugestivo de descolamento fibrovascular', c:'descolamento fibrovascular do EPR'},
@@ -328,11 +328,12 @@ const andJoin=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' e '+a[a.length
 const dot=s=>/[.!?]$/.test(s)?s:s+'.';
 const EYE_NAME={OD:'Olho direito',OE:'Olho esquerdo'};
 const LIM_TXT='Exame de difícil avaliação devido interferências do sinal e má centralização';
-const LIM_END='Sugiro repetir exame com melhor centralização e sem interferências para melhor avaliação.';
+const LIM_END='Sugiro repetir o exame com melhor centralização e sem interferências.';
 const examEyes=()=>S.olhos==='AO'?['OD','OE']:[S.olhos];
 
 function phrase(f,v,kind){
   if(kind==='c'&&f.cg)return f.cg[v.g]||f.cg[0];
+  if(kind==='t'&&f.tf)return f.tf(v);
   let s=kind==='t'?f.t:f.c;if(s==null)return null;
   if(f.g){const o=f.g[v.g]||f.g[0];const ins=kind==='t'?o[1]:o[2];s=s.includes('{g}')?s.replace('{g}',ins):s+ins;}
   if(f.n){const n=num(v.n);const ins=n!==null?(kind==='t'?f.n.t.replace('{n}',Math.round(n)):f.n.c(n)):'';s=s.includes('{n}')?s.replace('{n}',ins):s+ins;}
@@ -619,6 +620,7 @@ Para cada olho examinado, seis itens nesta ordem:
 5. Retina neurossensorial sem alterações
 6. Complexo EPR-Coroide sem alterações
 Estrutura normal: copie a frase acima literalmente. Estrutura alterada: troque só aquele item pela frase da biblioteca.
+Evite redundâncias: não repita a mesma palavra ou ideia no mesmo item ou na conclusão (por exemplo, "buraco de espessura total" já implica descontinuidade completa; não use "compatível" ou "subretiniano" duas vezes na mesma frase).
 
 BIBLIOTECA DE FRASES (use exatamente estas quando o achado couber)
 Item 1, sempre com o prefixo "Interface vítreo-retiniana: " e todos os achados da interface no mesmo item:
@@ -635,15 +637,15 @@ Item 2: Depressão foveal presente | Depressão foveal alterada | Depressão fov
 Item 3: Espessura central: N µm. Se a segmentação falhou e o valor contradiz o B-scan (por exemplo, valor baixo num olho com edema): "Espessura central: N µm (Medida prejudicada devido a interferência)". Sem mapa ETDRS: "Espessura central: ___ µm".
 Item 4 (um item por achado):
 - Presença de cistos intra-retinianos compatíveis com edema macular
-- Presença de cistos intra-retinianos compatíveis com edema macular e lâmina de líquido subretiniano compatível com descolamento seroso de retina
+- Presença de cistos intra-retinianos e lâmina de líquido subretiniano, compatíveis com edema macular e descolamento seroso de retina
 - Presença de cisto intra-retiniano em região foveal
 - Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias
 - Presença de pontos hiperrefletivos com sombreamento posterior que podem corresponder a exsudatos
 Itens 5 e 6: achados da linha fotorreceptores-EPR ocupam UM item no lugar dos itens 5 e 6 (o olho fica com 5 itens):
 - O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula o que sugere drusas
 - Discreta irregularidade a nível de segmento externo dos fotorreceptores-EPR o que sugere drusas
-- O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula com áreas de atrofia do EPR (acrescente "e retina externa" se houver perda da retina externa)
-- Irregularidade na linha de fotorreceptores-EPR em região foveal associado a hiperrefletividade subretiniana compatível com membrana neovascular subretiniana; com atividade: acrescente "com presença de material hiporrefletivo subretiniano sugestivo de atividade de membrana" ou "apresentando líquido subretiniano"; cicatricial: "de aspecto cicatricial com áreas de atrofia do EPR"
+- O segmento externo dos fotorreceptores apresenta-se irregular na região da mácula, com áreas de atrofia do EPR (acrescente "e retina externa" se houver perda da retina externa)
+- Membrana neovascular, conforme a atividade: "Irregularidade na linha de fotorreceptores-EPR em região foveal, associada a hiperrefletividade subretiniana compatível com membrana neovascular" | ativa com material hiporrefletivo: "Irregularidade na linha de fotorreceptores-EPR em região foveal, associada a hiperrefletividade subretiniana compatível com membrana neovascular e material hiporrefletivo adjacente sugestivo de atividade" | ativa com líquido: "Irregularidade na linha de fotorreceptores-EPR em região foveal, associada a material hiperrefletivo compatível com membrana neovascular e líquido subretiniano" | cicatricial: "Material hiperrefletivo subretiniano em região foveal compatível com membrana neovascular de aspecto cicatricial, com áreas de atrofia do EPR"
 - Impraticável avaliação de retina externa e EPR devido a interferência de sinal (sombra de cistos ou hemorragia impede a avaliação)
 - Líquido sub-retiniano sem edema intrarretiniano (item 5): Presença de líquido subretiniano compatível com descolamento seroso de retina
 Achados que substituem vários itens:
@@ -672,12 +674,12 @@ OD: ["Interface vítreo-retiniana: Sem alterações","Depressão foveal presente
 Conclusão: Exame dentro da normalidade
 
 Edema cistoide com líquido sub-retiniano e membrana sutil (olho direito):
-["Interface vítreo-retiniana: Hiperrefletividade linear pré retiniana discreta compatível com membrana epirretiniana","Depressão foveal alterada","Espessura central: 495 µm","Presença de cistos intra-retinianos compatíveis com edema macular e lâmina de líquido subretiniano compatível com descolamento seroso de retina","Retina neurossensorial sem alterações","Complexo EPR-Coroide sem alterações"]
+["Interface vítreo-retiniana: Hiperrefletividade linear pré retiniana discreta compatível com membrana epirretiniana","Depressão foveal alterada","Espessura central: 495 µm","Presença de cistos intra-retinianos e lâmina de líquido subretiniano, compatíveis com edema macular e descolamento seroso de retina","Retina neurossensorial sem alterações","Complexo EPR-Coroide sem alterações"]
 Conclusão (achado nos dois olhos): Exame sugestivo de edema macular bilateral
 
 Membrana neovascular cicatricial no olho direito e ativa no olho esquerdo:
-OD: ["Interface vítreo-retiniana: Sem alterações","Depressão foveal irregular","Espessura central: 212 µm","Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado","Irregularidade na linha de fotorreceptores-EPR em região foveal associado a hiperrefletividade subretiniana compatível com membrana neovascular subretiniana de aspecto cicatricial com áreas de atrofia do EPR"]
-OE: ["Interface vítreo-retiniana: Sem alterações","Perda da depressão foveal","Espessura central: 376 µm","Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado","Irregularidade na linha de fotorreceptores-EPR em região foveal associado a hiperrefletividade subretiniana compatível com membrana neovascular subretiniana apresentando líquido subretiniano"]
+OD: ["Interface vítreo-retiniana: Sem alterações","Depressão foveal irregular","Espessura central: 212 µm","Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado","Material hiperrefletivo subretiniano em região foveal compatível com membrana neovascular de aspecto cicatricial, com áreas de atrofia do EPR"]
+OE: ["Interface vítreo-retiniana: Sem alterações","Perda da depressão foveal","Espessura central: 376 µm","Camadas internas da retina se encontram dentro da normalidade com padrão de estratificação preservado","Irregularidade na linha de fotorreceptores-EPR em região foveal, associada a material hiperrefletivo compatível com membrana neovascular e líquido subretiniano"]
 Conclusão: Exame sugestivo de cicatriz disciforme em olho direito e membrana neovascular em atividade em olho esquerdo
 
 Drusas (itens 5 e 6 fundidos):
@@ -685,7 +687,7 @@ Drusas (itens 5 e 6 fundidos):
 Conclusão (nos dois olhos): Exame compatível com drusas maculares em ambos os olhos
 
 Membrana epirretiniana, edema e exsudatos, com atrofia:
-["Interface vítreo-retiniana: Hiperrefletividade linear pré retiniana compatível com membrana epirretiniana","Depressão foveal alterada","Espessura central: 458 µm","Presença de cistos intra-retinianos compatíveis com edema macular","Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias","O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula com áreas de atrofia do EPR"]
+["Interface vítreo-retiniana: Hiperrefletividade linear pré retiniana compatível com membrana epirretiniana","Depressão foveal alterada","Espessura central: 458 µm","Presença de cistos intra-retinianos compatíveis com edema macular","Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias","O segmento externo dos fotorreceptores apresenta-se irregular na região da mácula, com áreas de atrofia do EPR"]
 Conclusão (nos dois olhos): Exame compatível com membrana epirretiniana e edema macular em ambos os olhos
 
 Buraco macular, exame só do olho direito:
@@ -849,7 +851,7 @@ function fixEpr(r,notes){
     const i=it.findIndex(t=>/^\W*(Complexo )?EPR-Coroide sem alterações/i.test(String(t)));if(i<0)return;
     const drusa=/drusa/i.test(a)&&!/atrofi|hipertransmiss/i.test(a);
     const nt=drusa?'O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula o que sugere drusas'
-      :'O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula com áreas de atrofia do EPR';
+      :'O segmento externo dos fotorreceptores apresenta-se irregular na região da mácula, com áreas de atrofia do EPR';
     it.splice(i,1,nt);
     const j=it.findIndex(t=>/^\W*Retina neurossensorial sem alterações/i.test(String(t)));if(j>=0)it.splice(j,1);
     notes.unshift(EYE_NAME[e]+': a análise descreveu alteração do EPR ('+clean(a)+'), mas o item saiu normal; o item foi trocado pela frase de '+(drusa?'drusas':'atrofia do EPR')+'. Confira.');});
