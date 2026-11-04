@@ -96,6 +96,11 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 .dz.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .th{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#000;aspect-ratio:4/3}
+.ai{display:flex;flex-direction:column;gap:8px;padding-top:2px}
+.ai .copy:disabled{opacity:.65;cursor:progress}
+.hint.bad{color:var(--warn)}
+.notes{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;padding:8px 10px}
+.notes ul{margin:4px 0 0;padding-left:18px;font-size:.88rem;display:flex;flex-direction:column;gap:2px}
 .th .err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;color:#E3E9ED;font-size:.8rem}
 .th img{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-in}
 .th .x{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;line-height:1;font-size:15px}
@@ -389,12 +394,22 @@ function fovCard(){
    <p class="hint">Use o setor central (1 mm) do mapa ETDRS. A cor do banco normativo só entra no laudo se houver correlação no B-scan.</p></section>`;
 }
 function imgCard(){
-  const L=IMGS[S.eye];
+  const L=IMGS[S.eye],all=IMGS.OD.length+IMGS.OE.length;
+  let ai='';
+  if(all&&SAMPLE){
+    ai=`<div class="ai"><div class="actions"><button class="copy" type="button" id="aiRead"${AI.busy?' disabled':''}>${AI.busy?'Lendo…':'Ler imagem'}</button>${AI.busy?'<button class="btn" type="button" id="aiStop">Parar</button>':''}</div>
+     <p class="hint${AI.err?' bad':''}">${esc(AI.msg||'Lê todas as imagens carregadas (dos dois olhos) e preenche o formulário. O resultado é um rascunho: confira nas imagens antes de copiar.')}</p>
+     ${AI.notes.length?`<div class="notes"><span class="label">Conferência</span><ul>${AI.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`:''}</div>`;
+  }else if(all&&!HAS_CLAUDE){
+    ai=`<p class="hint">A leitura automática ("Ler imagem") funciona na versão deste laudo publicada no Claude.</p>`;
+  }
   return `<section class="sec" id="sec-img"><div class="sec-h"><h2>Imagens do ${S.eye==='OD'?'olho direito':'olho esquerdo'}</h2>${pill(0,L.length?L.length+(L.length>1?' imagens':' imagem'):'nenhuma')}</div>
-   <div class="drop"><label class="dz" id="dz">Toque para escolher ou arraste as imagens do OCT aqui<input type="file" id="fileIn" accept="image/*,.heic,.heif" multiple hidden></label>
+   <div class="drop"><label class="dz" id="dz">Toque para escolher ou arraste as imagens ou o PDF do OCT aqui<input type="file" id="fileIn" accept="image/*,.heic,.heif,application/pdf,.pdf" multiple hidden></label>
    ${L.length?`<div class="thumbs">${L.map((x,i)=>`<div class="th"><img src="${x.url}" alt="${esc(x.name)}" data-view="${i}"><button class="x" type="button" data-rm="${i}" aria-label="Remover imagem">×</button></div>`).join('')}</div>`:''}
-   <p class="hint">As imagens ficam só nesta tela: não são salvas nem enviadas, e não entram no texto copiado.</p></div></section>`;
+   ${ai}
+   <p class="hint">As imagens não são salvas e não entram no texto copiado.</p></div></section>`;
 }
+function renderImg(){const el=$('sec-img');if(el)el.outerHTML=imgCard();}
 function othersCard(){
   const eye=S.eyes[S.eye];
   return `<section class="sec" id="sec-ot"><div class="sec-h"><h2>Outros achados</h2>${pill((eye.ot.trim()?1:0)+(eye.lim?1:0))}</div>
@@ -428,7 +443,9 @@ secs.addEventListener('click',ev=>{
   const eye=S.eyes[S.eye];
   const im=ev.target.closest('[data-view]');if(im){openLB(+im.dataset.view);return;}
   const b=ev.target.closest('button');if(!b)return;
-  if(b.dataset.rm!==undefined){const i=+b.dataset.rm;IMGS[S.eye].splice(i,1);renderSections();return;}
+  if(b.id==='aiRead'){readImages();return;}
+  if(b.id==='aiStop'){if(aiCtl)aiCtl.abort();return;}
+  if(b.dataset.rm!==undefined){const i=+b.dataset.rm;IMGS[S.eye].splice(i,1);renderImg();return;}
   if(b.dataset.lim){eye.lim=!eye.lim;renderSections();update();refocus('button[data-lim]');return;}
   if(b.dataset.fov){eye.fov=b.dataset.fov;renderSections();update();refocus(`button[data-fov="${b.dataset.fov}"]`);return;}
   if(b.dataset.sf){const v=eye.sel[b.dataset.s][b.dataset.sf],k=b.dataset.k,i=v.s.indexOf(k);if(i>=0)v.s.splice(i,1);else v.s.push(k);
@@ -451,19 +468,135 @@ secs.addEventListener('input',ev=>{const t=ev.target,eye=S.eyes[S.eye];
 secs.addEventListener('dragover',ev=>{const z=ev.target.closest('#dz');if(!z)return;ev.preventDefault();z.classList.add('over');});
 secs.addEventListener('dragleave',ev=>{const z=ev.target.closest('#dz');if(z)z.classList.remove('over');});
 secs.addEventListener('drop',ev=>{const z=ev.target.closest('#dz');if(!z)return;ev.preventDefault();addFiles(ev.dataTransfer.files);});
-/* Lê como data URL (funciona também em visualizadores que bloqueiam blob:) */
-function addFiles(files){const e=S.eye;
-  const list=[...files].filter(f=>f.type.startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|heic|heif|tiff?)$/i.test(f.name));
-  if(!list.length){toast('Nenhuma imagem reconhecida');return;}
-  let left=list.length;
-  list.forEach(f=>{const r=new FileReader();
-    r.onload=()=>{IMGS[e].push({url:r.result,name:f.name});if(--left===0)renderSections();};
-    r.onerror=()=>{toast('Não foi possível ler '+f.name);if(--left===0)renderSections();};
-    r.readAsDataURL(f);});
+/* Lê como data URL (funciona também em visualizadores que bloqueiam blob:). PDFs viram uma imagem por página. */
+const toDataURL=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b);});
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let pdfLib=null;
+function loadPdfJs(){
+  if(pdfLib)return pdfLib;
+  pdfLib=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=PDFJS+'pdf.min.js';
+    sc.onload=()=>{const p=window.pdfjsLib;if(!p){pdfLib=null;rej(new Error('pdf.js'));return;}p.GlobalWorkerOptions.workerSrc=PDFJS+'pdf.worker.min.js';res(p);};
+    sc.onerror=()=>{pdfLib=null;rej(new Error('pdf.js'));};document.head.appendChild(sc);});
+  return pdfLib;
+}
+async function pdfPages(file){
+  const lib=await loadPdfJs();const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
+  for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const v1=pg.getViewport({scale:1});
+    const v=pg.getViewport({scale:Math.min(3,1800/Math.max(v1.width,v1.height))});
+    const c=document.createElement('canvas');c.width=Math.round(v.width);c.height=Math.round(v.height);
+    const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+    await pg.render({canvasContext:ctx,viewport:v}).promise;
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));if(blob)out.push({blob,name:file.name.replace(/\.pdf$/i,'')+' · pág. '+i});}
+  return out;
+}
+async function addFiles(files){
+  const e=S.eye,arr=[...files];
+  const isPdf=f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+  const isImg=f=>f.type.startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|heic|heif|tiff?)$/i.test(f.name);
+  const ok=arr.filter(f=>isPdf(f)||isImg(f));
+  if(!ok.length){toast('Nenhuma imagem ou PDF reconhecido');return;}
+  for(const f of ok){
+    if(isPdf(f)){toast('Abrindo o PDF…');
+      try{for(const p of await pdfPages(f))IMGS[e].push({url:await toDataURL(p.blob),name:p.name,blob:p.blob});}
+      catch(x){toast('Não foi possível abrir o PDF. Envie as páginas como imagem.');}}
+    else{try{IMGS[e].push({url:await toDataURL(f),name:f.name,blob:f});}catch(x){toast('Não foi possível ler '+f.name);}}
+    renderImg();
+  }
 }
 /* Imagem que o navegador não consegue exibir (ex.: HEIC fora do Safari) */
 document.addEventListener('error',ev=>{const t=ev.target;if(t.tagName==='IMG'&&t.closest('.th')&&!t.dataset.failed){t.dataset.failed=1;t.style.visibility='hidden';
   const m=document.createElement('span');m.className='err';m.textContent='Formato não exibido neste navegador. Exporte como JPG ou PNG.';t.parentNode.appendChild(m);}},true);
+
+/* ---------- Ler imagem: só na versão publicada no Claude (capacidade "sample") ---------- */
+const HAS_CLAUDE=!!(window.claude&&typeof window.claude.use==='function');
+let SAMPLE=null,IMG_LIM=null,aiCtl=null;
+const AI={busy:false,msg:'',err:false,notes:[]};
+if(HAS_CLAUDE){
+  window.claude.use('sample').then(async sm=>{if(!sm)return;const l=await sm.limits().catch(()=>null);if(!l||!l.images)return;SAMPLE=sm;IMG_LIM=l.images;renderImg();}).catch(()=>{});
+}
+function catalog(){
+  return SECTIONS.map(sec=>'['+sec.name+']\n'+sec.f.map(f=>{let l='- '+f.id+': '+f.l;
+    if(f.g)l+=' | opcao: '+f.g.map((o,i)=>i+'='+o[0]).join('; ');
+    if(f.s)l+=' | comp: '+f.s.map(x=>x[0]+'='+x[1]).join('; ');
+    if(f.n)l+=' | num: '+f.n.l+' em µm';
+    return l;}).join('\n')).join('\n\n');
+}
+function buildPrompt(list){
+  return `Você é um especialista em retina laudando uma tomografia de coerência óptica (OCT) de mácula. As imagens anexadas são, na ordem:
+${list.map((x,i)=>`Imagem ${i+1}: "${x.name}" (carregada no campo do ${x.eye==='OD'?'olho direito':'olho esquerdo'})`).join('\n')}
+Uma mesma imagem pode mostrar os dois olhos. Identifique o olho pelos rótulos da própria imagem (R, OD, Eye:R = olho direito; L, OS, OE, Eye:L = olho esquerdo), e use o campo de carregamento só quando a imagem não indicar o olho.
+
+TAREFA: preencher o formulário estruturado de laudo abaixo, escolhendo achados SOMENTE do catálogo.
+
+REGRAS
+1. Espessura central: valor do setor central (1 mm) do mapa ETDRS de espessura total (ILM até EPR/membrana de Bruch) de cada olho. Sem mapa ETDRS legível, use null. Não estime pelo B-scan.
+2. Morfologia: avalie os B-scans. Marque um achado só se estiver claramente visível. Sem achado, a estrutura é normal.
+3. Cores do banco normativo são apoio: setor fora do normal só vira achado se houver correlação no B-scan. Áreas cinzas no mapa indicam falha de segmentação e não devem ser interpretadas.
+4. Qualidade: índice de qualidade baixo (SQI, SSI, signal strength) ou artefato relevante: "limitada": true naquele olho.
+5. Depressão foveal: "presente", "retificada", "ausente", "invertida" ou "alterada".
+6. Achado claramente visível que não está no catálogo: descreva em "outros", uma frase curta no estilo de laudo, sem ponto final. Se não houver, "".
+7. Achado duvidoso: não marque; registre em "conferencia".
+8. "termo": "sugestivo de" se algum achado relevante for incerto; caso contrário "compatível com".
+9. "paciente": nome do cabeçalho em ordem direta (o aparelho costuma exibir SOBRENOME NOME), em maiúsculas; "" se não houver.
+10. "conferencia": 2 a 6 itens curtos em português: índice de qualidade de cada olho, setores com artefato, setores fora do banco normativo e se têm correlação no B-scan, achados duvidosos e datas diferentes entre as imagens, se houver.
+11. Tração vitreomacular: focal se a adesão tiver ≤ 1500 µm, ampla se > 1500 µm; sem medida visível, opcao 0. Buraco macular: "num" = diâmetro mínimo em µm somente se medido na imagem; não invente medidas.
+
+CATÁLOGO (id: rótulo | opcao: índice=descrição | comp: chave=descrição | num: medida)
+${catalog()}
+
+Cada item de "achados" tem o formato {"id": "<id do catálogo>", "opcao": <índice ou 0>, "comp": [<chaves de comp>], "num": <número ou null>}.
+
+Responda com apenas um objeto JSON, sem texto antes ou depois, neste formato:
+{"paciente": "", "termo": "compatível com", "OD": {"fovea": "presente", "espessura": null, "limitada": false, "achados": [], "outros": ""}, "OE": {"fovea": "presente", "espessura": null, "limitada": false, "achados": [], "outros": ""}, "conferencia": []}
+Se um olho não aparecer em nenhuma imagem, use null no lugar do objeto desse olho.`;
+}
+function applyAI(r){
+  if(!r||typeof r!=='object'||Array.isArray(r))throw {code:'invalid_json'};
+  const notes=Array.isArray(r.conferencia)?r.conferencia.map(x=>String(x).trim()).filter(Boolean).slice(0,8):[];
+  ['OD','OE'].forEach(e=>{const x=r[e];
+    if(!x||typeof x!=='object'){notes.push(EYE_NAME[e]+': não identificado nas imagens; o formulário desse olho não foi alterado.');return;}
+    const eye=blankEye();
+    if(FOV.some(f=>f[0]===x.fovea))eye.fov=x.fovea;
+    const c=num(x.espessura);eye.cst=c!==null?String(Math.round(c)):S.eyes[e].cst;
+    eye.lim=x.limitada===true;
+    (Array.isArray(x.achados)?x.achados:[]).forEach(a=>{if(!a||typeof a!=='object')return;
+      const id=String(a.id||''),sec=SEC_OF[id];if(!sec)return;const f=sec.f.find(y=>y.id===id);
+      const o=Number(a.opcao),g=f.g&&Number.isInteger(o)&&o>=0&&o<f.g.length?o:0;
+      const sl=f.s&&Array.isArray(a.comp)?a.comp.map(String).filter(k=>f.s.some(y=>y[0]===k)):[];
+      const n=f.n&&num(a.num)!==null?String(Math.round(num(a.num))):'';
+      (EXCL[id]||[]).forEach(k=>{delete eye.sel[SEC_OF[k].id][k];});
+      eye.sel[sec.id][id]={g,s:sl,n};});
+    if(typeof x.outros==='string')eye.ot=x.outros.trim().replace(/\.$/,'');
+    S.eyes[e]=eye;});
+  if(typeof r.paciente==='string'&&r.paciente.trim()&&!S.pac.trim()){S.pac=r.paciente.trim().toUpperCase();$('pac').value=S.pac;}
+  if(CTERMS.includes(r.termo)){S.cterm=r.termo;$('cterm').value=S.cterm;}
+  if(S.concl.trim())notes.push('Há uma conclusão personalizada preenchida, que substitui a automática.');
+  return notes;
+}
+function aiErr(e){
+  const c=e&&e.code;
+  if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed','images_unavailable'].includes(c)){SAMPLE=null;return '';}
+  return ({cancelled:'Leitura interrompida.',rate_limited:'Limite de uso do Claude atingido. Tente novamente mais tarde.',
+    image_rejected:'Uma das imagens não foi aceita (formato ou tamanho). Use JPG ou PNG.',session_expired:'Sessão expirada. Entre novamente no Claude.',
+    invalid_json:'A resposta não veio no formato esperado. Toque em Ler imagem para tentar de novo.',refused:'A leitura foi recusada para estas imagens.',
+    prompt_too_large:'Imagens demais para uma leitura. Remova algumas e tente de novo.',empty_completion:'A leitura não trouxe resultado. Tente de novo.'})[c]||'Falha na leitura. Tente novamente.';
+}
+async function readImages(){
+  if(AI.busy||!SAMPLE)return;
+  let list=[...IMGS.OD.map(x=>({...x,eye:'OD'})),...IMGS.OE.map(x=>({...x,eye:'OE'}))].filter(x=>x.blob);
+  if(!list.length)return;
+  let cut=0;if(IMG_LIM&&list.length>IMG_LIM.maxCount){cut=list.length-IMG_LIM.maxCount;list=list.slice(0,IMG_LIM.maxCount);}
+  AI.busy=true;AI.err=false;AI.notes=[];
+  AI.msg='Analisando '+list.length+(list.length>1?' imagens':' imagem')+'. Pode levar 1 a 2 minutos.';renderImg();
+  aiCtl=new AbortController();
+  try{
+    const r=await SAMPLE.json(buildPrompt(list),{images:list.map(x=>x.blob),modelTier:'complex',signal:aiCtl.signal});
+    AI.notes=applyAI(r);
+    AI.msg='Formulário preenchido. Confira cada item nas imagens antes de copiar.'+(cut?' '+cut+(cut>1?' imagens ficaram':' imagem ficou')+' de fora (limite de '+IMG_LIM.maxCount+' por leitura).':'');
+    toast('Laudo preenchido pela leitura');
+  }catch(e){AI.msg=aiErr(e);AI.err=!!(e&&e.code!=='cancelled');}
+  finally{AI.busy=false;aiCtl=null;renderSections();update();}
+}
 
 /* Visualizador ampliado */
 let lbI=0;
@@ -521,6 +654,7 @@ function fillPrintImgs(){const box=$('printImgs');const has=IMGS.OD.length||IMGS
 window.addEventListener('beforeprint',fillPrintImgs);
 $('printBtn').addEventListener('click',()=>{fillPrintImgs();window.print();});
 
+if(HAS_CLAUDE){$('printBtn').hidden=true;$('printImg').closest('label').hidden=true;}
 bindTech();setEye(S.eye||'OD');
 </script>
 </body>
