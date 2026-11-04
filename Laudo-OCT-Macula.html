@@ -565,15 +565,16 @@ function loadPdfJs(){
 async function pdfPages(file){
   const lib=await loadPdfJs();const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),verbosity:0,isEvalSupported:false}).promise;const out=[];
   for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const v1=pg.getViewport({scale:1});
-    const v=pg.getViewport({scale:Math.min(4,2400/Math.max(v1.width,v1.height))});
-    let both=false,date='',eyeTag='',map=false;try{const tx=(await pg.getTextContent()).items.map(t=>t.str).join(' ');map=/MAP\s*X-Y/i.test(tx);both=/\bBOTH\b|Eye\s*:\s*Both/i.test(tx);
+    const v=pg.getViewport({scale:Math.min(6,3200/Math.max(v1.width,v1.height))});
+    let both=false,date='',eyeTag='',map=false,prot='';try{const tx=(await pg.getTextContent()).items.map(t=>t.str).join(' ');map=/MAP\s*X-Y/i.test(tx);
+      prot=/MULTI\s*CROSS/i.test(tx)?'MULTI':/MACULA\s*CROSS/i.test(tx)?'CROSS':/MACULA\s*LINE/i.test(tx)?'LINE':/RADIAL/i.test(tx)?'RADIAL':map?'MAP':'';both=/\bBOTH\b|Eye\s*:\s*Both/i.test(tx);
       const m=tx.match(/(\d{1,2})\/(\d{1,2})\/(20\d{2})\s*,\s*(BOTH|OD|OS)\s*,/);
       if(m){date=String(m[2]).padStart(2,'0')+'/'+String(m[1]).padStart(2,'0')+'/'+m[3];eyeTag=m[4];}
       else{const d=tx.match(/Data do exame:\s*(\d{2}\/\d{2}\/\d{4})/);if(d)date=d[1];}}catch(x){}
     const c=document.createElement('canvas');c.width=Math.round(v.width);c.height=Math.round(v.height);
     const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
     await pg.render({canvasContext:ctx,viewport:v}).promise;
-    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));if(blob)out.push({blob,both,date,eyeTag,map,name:file.name.replace(/\.pdf$/i,'')+' · pág. '+i});}
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9));if(blob)out.push({blob,both,date,eyeTag,map,prot,name:file.name.replace(/\.pdf$/i,'')+' · pág. '+i});}
   return out;
 }
 async function addFiles(files){
@@ -584,7 +585,7 @@ async function addFiles(files){
   if(!ok.length){toast('Nenhuma imagem ou PDF reconhecido');return;}
   for(const f of ok){
     if(isPdf(f)){toast('Abrindo o PDF…');
-      try{const pages=await pdfPages(f);for(const p of pages)IMGS[e].push({url:await toDataURL(p.blob),name:p.name,blob:p.blob,both:p.both,map:p.map,eyeTag:p.eyeTag});
+      try{const pages=await pdfPages(f);for(const p of pages)IMGS[e].push({url:await toDataURL(p.blob),name:p.name,blob:p.blob,both:p.both,map:p.map,eyeTag:p.eyeTag,prot:p.prot});
         /* Data e olhos tirados do próprio PDF (o Nidek usa mês/dia/ano no rodapé) */
         const dates=pages.map(p=>p.date).filter(Boolean),tags=pages.map(p=>p.eyeTag).filter(Boolean);
         if(!S.data.trim()&&dates.length){const cnt={};dates.forEach(d=>cnt[d]=(cnt[d]||0)+1);S.data=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];$('data').value=S.data;
@@ -861,7 +862,13 @@ async function readImages(){
   if(!src.length)return;
   AI.busy=true;AI.err=false;AI.msg='Preparando as imagens…';renderImg();
   const prim=[],extra=[];
+  /* Páginas CROSS e LINE com os dois olhos: cada B-scan recortado em resolução nativa */
+  const BSCAN={CROSS:[['OD','horizontal',[.109,.486,.411,.703]],['OD','vertical',[.109,.708,.411,.925]],['OE','horizontal',[.589,.486,.891,.703]],['OE','vertical',[.589,.708,.891,.925]]],
+    LINE:[['OD','horizontal de 12 mm',[.062,.476,.458,.759]],['OE','horizontal de 12 mm',[.542,.477,.938,.759]]]};
   for(const x of src){
+    if(x.both&&BSCAN[x.prot]){try{
+      for(const [e,o,box] of BSCAN[x.prot])prim.push({blob:await cropRegion(x.blob,box,1),desc:`B-scan ${o} do ${e==='OD'?'olho direito':'olho esquerdo'} (protocolo ${x.prot==='CROSS'?'MACULA CROSS 6 mm':'MACULA LINE 12 mm'}), em resolução original`});
+      extra.push({blob:x.blob,desc:`"${x.name}", página inteira (cabeçalho, índices de qualidade e contexto)`});continue;}catch(e){}}
     if(x.both){try{const [l,r]=await cropHalves(x.blob);
       prim.push({blob:l,desc:`"${x.name}", metade esquerda da página: olho direito (R)`},{blob:r,desc:`"${x.name}", metade direita da página: olho esquerdo (L)`});
       extra.push({blob:x.blob,desc:`"${x.name}", página inteira (cabeçalho, índices de qualidade e contexto)`});continue;}catch(e){}}
