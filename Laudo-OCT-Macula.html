@@ -551,15 +551,18 @@ secs.addEventListener('drop',ev=>{const z=ev.target.closest('#dz');if(!z)return;
 const toDataURL=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b);});
 const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
 let pdfLib=null;
+/* pdf.js: a página roda num ambiente que não permite "worker" de outro domínio. Por isso o processador
+   do PDF é carregado como script comum e roda na própria página, sem o aviso "fake worker". */
+function loadScript(src){return new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=src;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});}
 function loadPdfJs(){
   if(pdfLib)return pdfLib;
-  pdfLib=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=PDFJS+'pdf.min.js';
-    sc.onload=()=>{const p=window.pdfjsLib;if(!p){pdfLib=null;rej(new Error('pdf.js'));return;}p.GlobalWorkerOptions.workerSrc=PDFJS+'pdf.worker.min.js';res(p);};
-    sc.onerror=()=>{pdfLib=null;rej(new Error('pdf.js'));};document.head.appendChild(sc);});
+  pdfLib=(async()=>{await loadScript(PDFJS+'pdf.min.js');await loadScript(PDFJS+'pdf.worker.min.js');
+    const p=window.pdfjsLib;if(!p)throw new Error('pdf.js');p.GlobalWorkerOptions.workerSrc=PDFJS+'pdf.worker.min.js';return p;})();
+  pdfLib.catch(()=>{pdfLib=null;});
   return pdfLib;
 }
 async function pdfPages(file){
-  const lib=await loadPdfJs();const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
+  const lib=await loadPdfJs();const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),verbosity:0,isEvalSupported:false}).promise;const out=[];
   for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const v1=pg.getViewport({scale:1});
     const v=pg.getViewport({scale:Math.min(4,2400/Math.max(v1.width,v1.height))});
     let both=false,date='',eyeTag='';try{const tx=(await pg.getTextContent()).items.map(t=>t.str).join(' ');both=/\bBOTH\b|Eye\s*:\s*Both/i.test(tx);
