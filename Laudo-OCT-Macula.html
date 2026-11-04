@@ -100,6 +100,8 @@ h1{font-family:var(--f-label);font-weight:600;font-size:1.5rem;letter-spacing:.0
 .ai .copy:disabled{opacity:.65;cursor:progress}
 .hint.bad{color:var(--warn)}
 .notes{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;padding:8px 10px}
+.ana summary{cursor:pointer}
+.ana[open] summary{margin-bottom:2px}
 .notes ul{margin:4px 0 0;padding-left:18px;font-size:.88rem;display:flex;flex-direction:column;gap:2px}
 .th .err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;color:#E3E9ED;font-size:.8rem}
 .th img{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-in}
@@ -279,7 +281,7 @@ const SEC_OF = {};SECTIONS.forEach(s=>s.f.forEach(f=>SEC_OF[f.id]=s));
 const KEY='oct-macula-v2', KEYA='oct-macula-ass', KEYE='oct-macula-enc';
 const ENC_DEF='Sugiro correlacionar os achados deste exame com os demais dados clínicos do paciente para melhor avaliação e conduta.\nDisponível para demais esclarecimentos.';
 function blankEye(){const s={},o={};SECTIONS.forEach(x=>{s[x.id]={};o[x.id]='';});return {sel:s,outro:o,fov:'presente',cst:'',ot:'',lim:false};}
-function blank(){return {pac:'',cterm:'compatível com',pimg:false,txt:null,src:'',notes:[],eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
+function blank(){return {pac:'',cterm:'compatível com',pimg:false,txt:null,src:'',notes:[],ana:{},eye:'OD',eyes:{OD:blankEye(),OE:blankEye()}};}
 /* Normaliza dados salvos: descarta achados inexistentes e corrige formatos */
 function fixEye(e){
   const b=blankEye();if(!e||typeof e!=='object')return b;
@@ -295,7 +297,7 @@ function fixEye(e){
 }
 const CTERMS=['compatível com','sugestivo de'];
 let S=blank();
-try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';if(!CTERMS.includes(S.cterm))S.cterm='compatível com';if(typeof S.txt!=='string'){S.txt=null;S.src='';}if(!['ai','manual'].includes(S.src))S.src=S.txt?'manual':'';if(!Array.isArray(S.notes))S.notes=[];delete S.concl;delete S.ai;}}}catch(e){S=blank();}
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.eyes){S=Object.assign(blank(),p);S.eyes={OD:fixEye(p.eyes.OD),OE:fixEye(p.eyes.OE)};if(!['OD','OE'].includes(S.eye))S.eye='OD';if(!CTERMS.includes(S.cterm))S.cterm='compatível com';if(typeof S.txt!=='string'){S.txt=null;S.src='';}if(!['ai','manual'].includes(S.src))S.src=S.txt?'manual':'';if(!Array.isArray(S.notes))S.notes=[];if(!S.ana||typeof S.ana!=='object'||Array.isArray(S.ana))S.ana={};delete S.concl;delete S.ai;}}}catch(e){S=blank();}
 let ASS='',ENC=ENC_DEF;
 try{ASS=localStorage.getItem(KEYA)||localStorage.getItem('usg-ocular-ass')||localStorage.getItem('mapeamento-retina-ass')||'';const e=localStorage.getItem(KEYE);if(e!==null)ENC=e;}catch(e){}
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}},300);}
@@ -438,8 +440,10 @@ function renderOut(){
   if(S.txt===null)o.innerHTML=reportHTML();else if(document.activeElement!==o)o.innerHTML=fmtHTML(S.txt);
   $('modeTxt').textContent=MODE_TXT[S.txt===null?'':S.src];
   $('mode').classList.toggle('on',S.txt!==null);$('modeBack').hidden=S.txt===null;
-  const nb=$('aiNotes');nb.hidden=!S.notes.length;
-  nb.innerHTML=S.notes.length?`<div class="notes"><span class="label">Conferência da leitura (não entra no laudo)</span><ul>${S.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`:'';
+  const nb=$('aiNotes'),eyesA=['OD','OE'].filter(e=>Array.isArray(S.ana[e])&&S.ana[e].length);
+  nb.hidden=!S.notes.length&&!eyesA.length;
+  nb.innerHTML=(S.notes.length?`<div class="notes"><span class="label">Conferência da leitura (não entra no laudo)</span><ul>${S.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`:'')
+    +eyesA.map(e=>`<details class="notes ana"><summary class="label">Análise por estrutura · ${EYE_NAME[e].toLowerCase()}</summary><ul>${S.ana[e].map(([l,t])=>`<li><b>${esc(l)}:</b> ${esc(t)}</li>`).join('')}</ul></details>`).join('');
 }
 function update(){
   renderOut();
@@ -556,6 +560,9 @@ const STYLE_EX=`Itens alterados, como o laudador escreve:
 • Presença de cistos intra-retinianos compatíveis com edema macular; presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias
 • Interrupção focal da zona elipsoide em região macular
 • Afinamento da retina neurossensorial em região foveal
+• Presença de pontos hiperrefletivos intrarretinianos com sombra posterior, que podem corresponder a exsudatos duros
+• Complexo EPR-Coroide com irregularidades e elevações focais do EPR, compatíveis com drusas
+• Complexo EPR-Coroide com perda do EPR e hipertransmissão do sinal para a coroide, sugestiva de atrofia
 
 Conclusões, como o laudador escreve:
 - Exame dentro da normalidade
@@ -577,21 +584,24 @@ ${STYLE_EX}
 
 REGRAS DE ESCRITA
 1. Cada olho tem exatamente seis itens, nesta ordem: interface vítreo-retiniana; depressão foveal; espessura central; camadas internas da retina; retina neurossensorial; complexo EPR-coroide.
-2. Estrutura normal: copie a frase do modelo literalmente. Estrutura alterada: substitua só aquele item por uma frase descritiva no estilo dos exemplos. Dois achados na mesma estrutura ficam no mesmo item, separados por ponto e vírgula.
+2. Use a frase normal do modelo, literalmente, somente quando a sua análise daquela estrutura (campo "analise") não encontrou alteração em nenhum B-scan. Estrutura alterada: substitua só aquele item por uma frase descritiva no estilo dos exemplos. Dois achados na mesma estrutura ficam no mesmo item, separados por ponto e vírgula.
 3. Itens sem ponto final. Sem abreviações de olho: escreva olho direito, olho esquerdo, ambos os olhos ou bilateral.
 4. Espessura central: valor do setor central (1 mm) do mapa ETDRS de espessura total (ILM até EPR/membrana de Bruch), no formato "Espessura central: 326 µm". Sem mapa ETDRS legível: "Espessura central: ___ µm". Não estime pelo B-scan.
 5. Checagem obrigatória da espessura: compare o setor central do ETDRS com a escala do banco normativo ao lado do mapa (no topo da escala, acima do normal; na faixa verde, normal; abaixo do verde, amarelo ou vermelho, abaixo do normal) e com os setores vizinhos. Central abaixo do normal ou fóvea visivelmente mais fina no B-scan: descreva o afinamento no item da retina neurossensorial ("Afinamento da retina neurossensorial em região foveal") e inclua na conclusão. Central acima do normal: procure a causa (edema, tração, membrana) e descreva o espessamento. Se a cor indicar alteração e o B-scan não confirmar, não descreva no laudo e registre na conferência.
 6. Percorra cada estrutura nos B-scans: interface (membrana epirretiniana, adesão ou tração vítrea, buraco); contorno e profundidade da depressão foveal; espessura (espessamento ou afinamento); camadas internas (cistos, pontos hiperrefletivos, desorganização); retina externa (fluido sub-retiniano, zona elipsoide, membrana limitante externa); EPR e coroide (drusas, descolamentos, atrofia). Descreva também alterações sutis, desde que visíveis.
 7. Achado provável, mas não confirmado: use "sugestivo de" no item e na conclusão. Áreas cinzas no mapa são falha de segmentação e não devem ser interpretadas.
 8. Conclusão: uma frase no estilo dos exemplos, sem ponto final.
+9. Antes de escrever os itens, preencha "analise": para cada olho e cada estrutura, descreva em uma frase curta o que você vê nos B-scans (localização e em qual imagem), sem partir do pressuposto de normalidade. O EPR e a coroide merecem atenção especial: irregularidade, elevações (drusas, descolamentos), interrupções, hiperrefletividade, hipertransmissão para a coroide e sombras.
+10. Intensidade de sinal baixa (por exemplo, abaixo de 6/10 no Cirrus ou SQI baixo): registre na conferência, mas descreva os achados visíveis.
+11. Exame de um só olho: use null no outro olho. Protocolo sem mapa de espessura: "Espessura central: ___ µm" e registre na conferência.
 
 TAMBÉM INFORME
 - "paciente": nome do cabeçalho em ordem direta (o aparelho costuma exibir SOBRENOME NOME), em maiúsculas; "" se não houver.
 - "conferencia": 2 a 6 itens curtos para o laudador conferir (não entram no laudo): índice de qualidade (SQI/SSI) de cada olho, setores com artefato, setores fora do banco normativo e se têm correlação no B-scan, achados duvidosos, datas diferentes entre as imagens.
 
 Responda com apenas um objeto JSON, sem texto antes ou depois:
-{"paciente": "", "OD": ["seis itens"], "OE": ["seis itens"], "conclusao": "", "conferencia": []}
-Se um olho não aparecer em nenhuma imagem, use null no lugar da lista desse olho.`;
+{"paciente": "", "analise": {"OD": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}, "OE": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}}, "OD": ["seis itens"], "OE": ["seis itens"], "conclusao": "", "conferencia": []}
+Se um olho não aparecer em nenhuma imagem, use null no lugar da lista e da análise desse olho.`;
 }
 const clean=t=>String(t).trim().replace(/^[•\-–*]\s*/,'').replace(/\.$/,'').trim();
 /* Monta o texto final: conteúdo da análise no layout do modelo + encerramento e assinatura da página */
@@ -604,15 +614,17 @@ function aiCompose(r){
   let any=false;
   ['OD','OE'].forEach(e=>{
     const it=Array.isArray(r[e])?r[e].map(clean).filter(Boolean):null;
-    L.push(EYE_NAME[e]);
-    if(it&&it.length){any=true;it.forEach(t=>L.push('• '+t));}
-    else{L.push('• Não avaliado nas imagens enviadas');notes.push(EYE_NAME[e]+': não identificado nas imagens enviadas.');}
-    L.push('');});
+    if(it&&it.length){any=true;L.push(EYE_NAME[e]);it.forEach(t=>L.push('• '+t));L.push('');}
+    else notes.push(EYE_NAME[e]+': não incluído nas imagens; omitido do laudo.');});
   if(!any)throw {code:'empty_completion'};
   L.push('Conclusão','',clean(r.conclusao||'')||'___');
   ENC.split('\n').map(x=>x.trim()).filter(Boolean).forEach(t=>L.push('',t));
   const a=ASS.split('\n').map(x=>x.trim()).filter(Boolean);if(a.length){L.push('');a.forEach(t=>L.push(t));}
-  return {txt:L.join('\n'),notes};
+  const ANA_K=[['interface','Interface'],['fovea','Fóvea'],['espessura','Espessura'],['camadas_internas','Camadas internas'],['retina_externa','Retina externa'],['epr_coroide','EPR e coroide']];
+  const ana={};const src=r.analise&&typeof r.analise==='object'?r.analise:{};
+  ['OD','OE'].forEach(e=>{const x=src[e];if(!x||typeof x!=='object')return;
+    const rows=ANA_K.map(([k,l])=>[l,typeof x[k]==='string'?clean(x[k]):'']).filter(r=>r[1]);if(rows.length)ana[e]=rows;});
+  return {txt:L.join('\n'),notes,ana};
 }
 const IS_BOLD=t=>t==='TOMOGRAFIA DE COERÊNCIA ÓPTICA DE MÁCULA'||/^PACIENTE\s*:/.test(t)||t==='Olho direito'||t==='Olho esquerdo'||t==='Conclusão'||ASS.split('\n').map(x=>x.trim()).filter(Boolean).includes(t);
 function fmtHTML(txt){
@@ -633,7 +645,7 @@ let backArm=null;
 $('modeBack').addEventListener('click',ev=>{const b=ev.currentTarget;
   if(!backArm){b.textContent=S.src==='ai'?'Descartar a leitura?':'Descartar as edições?';b.classList.add('warn');backArm=setTimeout(()=>{backArm=null;b.textContent='Voltar ao formulário';b.classList.remove('warn');},3500);return;}
   clearTimeout(backArm);backArm=null;b.textContent='Voltar ao formulário';b.classList.remove('warn');
-  S.txt=null;S.src='';S.notes=[];AI.msg='';update();renderImg();toast('Laudo de volta ao formulário');});
+  S.txt=null;S.src='';S.notes=[];S.ana={};AI.msg='';update();renderImg();toast('Laudo de volta ao formulário');});
 function aiErr(e){
   const c=e&&e.code;
   if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed','images_unavailable'].includes(c)){SAMPLE=null;return '';}
@@ -669,7 +681,7 @@ async function readImages(){
   aiCtl=new AbortController();let done=false;
   try{
     const r=await SAMPLE.json(buildPrompt(list),{images:list.map(x=>x.blob),modelTier:'complex',signal:aiCtl.signal});
-    {const c=aiCompose(r);S.txt=c.txt;S.src='ai';S.notes=c.notes;}save();done=true;
+    {const c=aiCompose(r);S.txt=c.txt;S.src='ai';S.notes=c.notes;S.ana=c.ana;}save();done=true;
     AI.msg='Laudo preenchido com a leitura das imagens.'+(cut?' '+cut+(cut>1?' imagens ficaram':' imagem ficou')+' de fora (limite de '+max+' por leitura).':'');
   }catch(e){AI.msg=aiErr(e);AI.err=!!(e&&e.code!=='cancelled');}
   finally{AI.busy=false;aiCtl=null;renderImg();update();
