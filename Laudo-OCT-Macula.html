@@ -254,7 +254,7 @@ const SECTIONS = [
    s:[['dsr','Com líquido sub-retiniano','','']], sp:'', scp:''},
   {id:'cisf', l:'Cisto foveal isolado', t:'Presença de cisto intra-retiniano em região foveal', c:null},
   {id:'hrf', l:'Pontos hiperrefletivos', t:'Presença de pontos hiperrefletivos {g}', c:null,
-   g:[['Exsudatos/hemorragias','que podem corresponder a exsudatos/hemorragias',''],['Com sombreamento (exsudatos)','com sombreamento posterior que podem corresponder a exsudatos','']]},
+   g:[['Intrarretinianos','intrarretinianos',''],['Com sombreamento (exsudatos)','com sombreamento posterior que podem corresponder a exsudatos','']]},
   {id:'deso', l:'Desorganização com atrofia', take:'4-6', sec2:1, t:'Evidencia-se desorganização das camadas internas e externa da retina com áreas de atrofia do EPR', c:'desorganização das camadas retinianas e atrofia do EPR'},
   {id:'dril', l:'DRIL', t:'Desorganização das camadas internas da retina (DRIL)', c:null},
   {id:'isq', l:'Isquemia interna', t:'Hiperrefletividade e espessamento das camadas internas da retina, sugestivos de isquemia retiniana interna', c:'isquemia retiniana interna'},
@@ -642,7 +642,7 @@ Item 4 (um item por achado):
 - Presença de cistos intra-retinianos compatíveis com edema macular
 - Presença de cistos intra-retinianos e lâmina de líquido subretiniano, compatíveis com edema macular e descolamento seroso de retina
 - Presença de cisto intra-retiniano em região foveal
-- Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias
+- Presença de pontos hiperrefletivos intrarretinianos
 - Presença de pontos hiperrefletivos com sombreamento posterior que podem corresponder a exsudatos
 Itens 5 e 6: achados da linha fotorreceptores-EPR ocupam UM item no lugar dos itens 5 e 6 (o olho fica com 5 itens):
 - O segmento externo dos fotorreceptores-EPR apresenta-se irregular na região da mácula o que sugere drusas
@@ -691,7 +691,7 @@ Drusas (itens 5 e 6 fundidos):
 Conclusão (nos dois olhos): Exame compatível com drusas maculares em ambos os olhos
 
 Membrana epirretiniana, edema e exsudatos, com atrofia:
-["Interface vítreo-retiniana: Hiperrefletividade linear pré retiniana compatível com membrana epirretiniana","Depressão foveal alterada","Espessura central: 458 µm","Presença de cistos intra-retinianos compatíveis com edema macular","Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias","O segmento externo dos fotorreceptores apresenta-se irregular na região da mácula, com áreas de atrofia do EPR"]
+["Interface vítreo-retiniana: Hiperrefletividade linear pré retiniana compatível com membrana epirretiniana","Depressão foveal alterada","Espessura central: 458 µm","Presença de cistos intra-retinianos compatíveis com edema macular","Presença de pontos hiperrefletivos intrarretinianos","O segmento externo dos fotorreceptores apresenta-se irregular na região da mácula, com áreas de atrofia do EPR"]
 Conclusão (nos dois olhos): Exame compatível com membrana epirretiniana e edema macular em ambos os olhos
 
 Buraco macular, exame só do olho direito:
@@ -703,7 +703,7 @@ Edema com sombra que impede avaliar a retina externa:
 Conclusão (só nesse olho): Exame sugestivo de edema macular secundário a oclusão de veia central da retina em olho direito
 
 Hemorragia sub-hialoidea e pontos hiperrefletivos:
-["Interface vítreo-retiniana: Presença de pontos hiperrefletivos entre a hialoide e a retina sugestivo de hemorragia subhialoidea","Depressão foveal presente","Espessura central: 270 µm","Presença de pontos hiperrefletivos que podem corresponder a exsudatos/hemorragias","Retina neurossensorial sem alterações","Complexo EPR-Coroide sem alterações"]
+["Interface vítreo-retiniana: Presença de pontos hiperrefletivos entre a hialoide e a retina sugestivo de hemorragia subhialoidea","Depressão foveal presente","Espessura central: 270 µm","Presença de pontos hiperrefletivos intrarretinianos","Retina neurossensorial sem alterações","Complexo EPR-Coroide sem alterações"]
 Conclusão: Exame sugere quadro de retinopatia diabética
 
 Medida prejudicada:
@@ -736,7 +736,7 @@ COMO RESPONDER
 Responda com apenas um objeto JSON, sem texto antes ou depois:
 {"paciente": "", "data": "", "analise": {"OD": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}, "OE": {"interface": "", "fovea": "", "espessura": "", "camadas_internas": "", "retina_externa": "", "epr_coroide": ""}}, "OD": ["itens"], "OE": ["itens"], "conclusao": "", "conferencia": []}`;
 }
-const clean=t=>String(t).trim().replace(/^[•\-–*]\s*/,'').replace(/\.$/,'').trim();
+const clean=t=>String(t).trim().replace(/^[•\-–*]\s*/,'').replace(/\.$/,'').replace(/pontos hiperrefletivos que podem corresponder a exsudatos\s*\/\s*hemorragias/gi,'pontos hiperrefletivos intrarretinianos').trim();
 /* Monta o texto final: conteúdo da análise no layout do modelo + encerramento e assinatura da página */
 function aiCompose(r){
   if(!r||typeof r!=='object'||Array.isArray(r))throw {code:'invalid_json'};
