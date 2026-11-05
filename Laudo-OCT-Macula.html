@@ -669,6 +669,7 @@ LEITURA DO EXAME (Nidek RS-3000)
 - Qualidade: SQI (x/5), SSI (x/10) e "Tracing HD (n/50)"; n baixo (1/50) = imagem ruidosa, sem promediação.
 - Página "Eye:Both": olho direito (R) à esquerda, olho esquerdo (L) à direita. Página de um olho só ("OD" ou "OS" no rodapé): o exame é desse olho; o outro fica null.
 - Sombreamento x atrofia: exsudatos, hemorragias e focos hiperrefletivos causam sombra posterior; isso não é atrofia. Atrofia exige hipertransmissão para a coroide com perda do EPR e afinamento da retina externa, sem foco acima explicando o sinal.
+- MATERIAL HIPERREFLETIVO SUB-RETINIANO (acima do EPR, sob a retina, na região foveal) = MEMBRANA NEOVASCULAR, nunca atrofia isolada. Com atrofia ao redor e sem líquido: use a frase de membrana neovascular cicatricial (cicatriz disciforme). Com líquido sub-retiniano ou intrarretiniano: membrana neovascular ativa. Na dúvida entre atrofia e membrana neovascular, escreva a frase de membrana neovascular e registre a dúvida na conferência. A frase de atrofia só vale quando não há material hiperrefletivo sub-retiniano.
 - Hipertransmissão do sinal para a coroide (faixa clara abaixo do EPR), EPR irregular, interrompido, elevado ou atenuado são ALTERAÇÕES DO COMPLEXO EPR-COROIDE: nunca escreva "Complexo EPR-Coroide sem alterações" quando houver qualquer uma delas.
 - Avalie todos os B-scans (CROSS, LINE, RADIAL, MULTI CROSS) antes de decidir que uma estrutura é normal. Descreva alterações sutis, desde que visíveis.`;
 const EXAMPLES=`EXEMPLOS REAIS DO SERVIÇO
@@ -870,7 +871,24 @@ function fixEpr(r,notes){
     const j=it.findIndex(t=>/^\W*Retina neurossensorial sem alterações/i.test(String(t)));if(j>=0)it.splice(j,1);
     notes.unshift(EYE_NAME[e]+': a análise descreveu alteração do EPR ('+clean(a)+'), mas o item saiu normal; o item foi trocado pela frase de '+(drusa?'drusas':'atrofia do EPR')+'. Confira.');});
 }
+const MNV_TXT=['Material hiperrefletivo subretiniano em região foveal compatível com membrana neovascular de aspecto cicatricial, com áreas de atrofia do EPR',
+  'Irregularidade na linha de fotorreceptores-EPR em região foveal, associada a material hiperrefletivo compatível com membrana neovascular e líquido subretiniano'];
+function fixMnv(r,notes){
+  const conf=Array.isArray(r.conferencia)?r.conferencia.map(String):[];
+  ['OD','OE'].forEach(e=>{const it=Array.isArray(r[e])?r[e]:null;if(!it)return;
+    const an=r.analise&&r.analise[e]?Object.values(r.analise[e]).map(String).join(' '):'';
+    const eyeRx=e==='OD'?/^\W*(OD|olho direito)\b/i:/^\W*(OE|OS|olho esquerdo)\b/i;
+    const txt=an+' '+conf.filter(c=>eyeRx.test(c)).join(' ');
+    const sees=/membrana neovascular|neovasculariza|cicatriz disciforme|cicatri|fibros|SHRM|material hiperrefletivo sub-?retinian|hiperrefletividade sub-?retinian/i.test(txt);
+    if(!sees||it.some(t=>/neovascular/i.test(String(t))))return;
+    const i=it.findIndex(t=>/atrofia do EPR/i.test(String(t))&&!/desorganiza/i.test(String(t)));if(i<0)return;
+    const wet=/líquido sub-?retinian|fluido sub-?retinian|líquido intra|cistos? intra/i.test(an);
+    it.splice(i,1,MNV_TXT[wet?1:0]);
+    if(typeof r.conclusao==='string'&&/atrofia/i.test(r.conclusao))r.conclusao=r.conclusao.replace(/atrofia( do EPR)?( e (da )?retina externa)?/i,wet?'membrana neovascular em atividade':'cicatriz disciforme');
+    notes.unshift(EYE_NAME[e]+': a própria análise apontou membrana neovascular ou material hiperrefletivo sub-retiniano, mas o item saiu como atrofia; trocado por membrana neovascular '+(wet?'com líquido':'cicatricial')+'. Confira.');});
+}
 function checkCoherence(r,th,notes){
+  fixMnv(r,notes);
   fixEpr(r,notes);
   ['OD','OE'].forEach(e=>{const it=Array.isArray(r[e])?r[e].map(String):null;if(!it)return;const n=num(th[e]);
     const allNormal=NORMAL_RX.every(rx=>it.some(t=>rx.test(clean(t))));
